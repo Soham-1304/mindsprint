@@ -381,6 +381,20 @@ export class CulpritFinder {
   ): IncidentEvidence['sietchVerdict'] | undefined {
     if (!latestSietchScan) return undefined;
 
+    // Only correlate a Sietch scan with a runtime incident if the scan actually ran on main/master
+    // or matches a recent deploy commit SHA — never bleed an unrelated feature PR scan into production incidents.
+    const isProductionBranch =
+      latestSietchScan.branch === 'main' || latestSietchScan.branch === 'master';
+    const matchesRecentDeploy = recentDeploys.some(
+      (d) =>
+        latestSietchScan.commitSha &&
+        d.commitSha &&
+        latestSietchScan.commitSha.startsWith(d.commitSha.slice(0, 7)),
+    );
+    if (!isProductionBranch && !matchesRecentDeploy) {
+      return undefined;
+    }
+
     const touchedPackageJson = recentDeploys.some((d) =>
       d.changedFiles?.some((f) => f.endsWith('package.json') || f.endsWith('package-lock.json')),
     );

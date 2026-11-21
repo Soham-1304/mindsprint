@@ -51,15 +51,9 @@ export const CONFIG = {
   // Live PulseShop Microservices (deployed independently on Vercel; override via env for local Docker)
   MONITORED_SERVICES: process.env.MONITORED_SERVICES || '',
   DEFAULT_SERVICE_URLS: {
-    gateway:
-      process.env.GATEWAY_URL ||
-      'https://pulseshop-gateway-41zp9bnd4-2024sohamk-isuacins-projects.vercel.app',
-    orders:
-      process.env.ORDERS_URL ||
-      'https://pulseshop-orders-7zi3gxoeo-2024sohamk-isuacins-projects.vercel.app',
-    payments:
-      process.env.PAYMENTS_URL ||
-      'https://pulseshop-payments-7e3kr3j5d-2024sohamk-isuacins-projects.vercel.app',
+    gateway: process.env.GATEWAY_URL || 'https://pulseshop-gateway.vercel.app',
+    orders: process.env.ORDERS_URL || 'https://pulseshop-orders.vercel.app',
+    payments: process.env.PAYMENTS_URL || 'https://pulseshop-payments.vercel.app',
   },
 
   // Webhooks & Pluggable Alerting Channels (Slack, Discord, ntfy loud mobile siren, PagerDuty phone/SMS)

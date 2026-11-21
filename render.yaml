@@ -44,11 +44,11 @@ services:
       - key: GITHUB_REPO
         value: pulseshop
       - key: GATEWAY_URL
-        value: https://pulseshop-gateway-41zp9bnd4-2024sohamk-isuacins-projects.vercel.app
+        value: https://pulseshop-gateway.vercel.app
       - key: ORDERS_URL
-        value: https://pulseshop-orders-7zi3gxoeo-2024sohamk-isuacins-projects.vercel.app
+        value: https://pulseshop-orders.vercel.app
       - key: PAYMENTS_URL
-        value: https://pulseshop-payments-7e3kr3j5d-2024sohamk-isuacins-projects.vercel.app
+        value: https://pulseshop-payments.vercel.app
       - key: OPERATOR_APPROVAL_TOKEN
         value: patchup-operator-2026
       - key: DASHBOARD_PUBLIC_URL

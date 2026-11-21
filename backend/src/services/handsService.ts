@@ -653,6 +653,20 @@ export class HandsService {
     }
 
     incident.timestamps.fixAppliedAt = new Date().toISOString();
+
+    if (fix.actionType === 'FIX_PR' || fix.actionType === 'REVERT_PR') {
+      // PR-Only guardrail: production does not change until a human reviews & merges the PR.
+      // Do not falsely auto-undo an unmerged PR during live health probing.
+      incident.status = 'WAITING_APPROVAL';
+      incidentManager.updateStatus(incident.id, 'WAITING_APPROVAL');
+      wsBroadcaster.broadcast('INCIDENT_UPDATED', incidentManager.getById(incident.id));
+
+      return {
+        executed: true,
+        message: `PR #${incident.fixPrNumber ?? 'N/A'} opened by ${executor} — awaiting human review & merge.`,
+      };
+    }
+
     incident.status = 'VERIFYING';
     incidentManager.updateStatus(incident.id, 'VERIFYING');
     wsBroadcaster.broadcast('INCIDENT_UPDATED', incidentManager.getById(incident.id));
@@ -722,6 +736,17 @@ export class HandsService {
     repoOwner?: string,
     repoName?: string
   ): Promise<string | null> {
+    // 1. Prefer verbatim unredacted file from GitHub API so surgical PR diffs never commit "[REDACTED_EMAIL]"
+    const fetched = await prBot.fetchFileContent(targetFile, undefined, repoOwner, repoName);
+    if (fetched?.content) return fetched.content;
+
+    // 2. Local repo fallback (dev / tests)
+    const localPath = path.resolve(CONFIG.PULSESHOP_REPO_DIR, targetFile);
+    if (fs.existsSync(localPath)) {
+      return fs.readFileSync(localPath, 'utf8');
+    }
+
+    // 3. Ephemeral RAM vault fallback
     const ctx = ephemeralVault.getContext(incidentId);
     if (ctx?.sourceFiles) {
       if (ctx.sourceFiles[targetFile]) return ctx.sourceFiles[targetFile];
@@ -732,13 +757,6 @@ export class HandsService {
       if (match) return ctx.sourceFiles[match];
     }
 
-    const fetched = await prBot.fetchFileContent(targetFile, undefined, repoOwner, repoName);
-    if (fetched?.content) return fetched.content;
-
-    const localPath = path.resolve(CONFIG.PULSESHOP_REPO_DIR, targetFile);
-    if (fs.existsSync(localPath)) {
-      return fs.readFileSync(localPath, 'utf8');
-    }
     return null;
   }
 
