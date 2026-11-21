@@ -1,17 +1,8 @@
 import { Activity, Flame, Globe, Link2, Play, RotateCcw, ServerCrash } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import type { ConnectedApplication, GitHubAppStatus, LinkedProject } from "../types";
-import { ProjectsPanel } from "./ProjectsPanel";
+import type { ConnectedApplication } from "../types";
 
 interface ApplicationsViewProps {
-  apiBase: string;
-  projects: LinkedProject[];
-  activeProjectId: string;
-  githubApp?: GitHubAppStatus;
-  onSelectProject: (projectId: string) => void;
-  onProjectImported: (project: LinkedProject) => void;
-  onRescanSignals: (projectId: string) => Promise<void>;
-  onDeleteProject: (projectId: string) => Promise<void>;
   applications: ConnectedApplication[];
   onConnectApplication: (payload: {
     name: string;
@@ -62,14 +53,6 @@ const FAULT_SCENARIOS: Array<{
 ];
 
 export function ApplicationsView({
-  apiBase,
-  projects,
-  activeProjectId,
-  githubApp,
-  onSelectProject,
-  onProjectImported,
-  onRescanSignals,
-  onDeleteProject,
   applications,
   onConnectApplication,
   onProbeApplication,
@@ -143,23 +126,12 @@ export function ApplicationsView({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <ProjectsPanel
-        apiBase={apiBase}
-        projects={projects}
-        activeProjectId={activeProjectId}
-        githubApp={githubApp}
-        onSelectProject={onSelectProject}
-        onProjectImported={onProjectImported}
-        onRescanSignals={onRescanSignals}
-        onDeleteProject={onDeleteProject}
-      />
-
       <div className="evidence-two-col">
         {/* Left: Connect Any Deployed URL */}
         <section className="panel" aria-label="Connect Any Deployed Application">
           <div className="panel-header">
             <h2 className="panel-title">
-              <Link2 size={15} color="#22d3ee" />
+              <Link2 size={15} color="var(--accent)" />
               <span>Hook In Any Deployed URL</span>
             </h2>
             <span className="badge badge-cyan mono">POST /api/applications/connect</span>
@@ -168,7 +140,7 @@ export function ApplicationsView({
             <form onSubmit={handleConnectSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 160px", gap: 10 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label htmlFor="app-name-input" style={{ fontSize: 12, color: "#94a3b8" }}>
+                  <label htmlFor="app-name-input" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                     Application Name
                   </label>
                   <input
@@ -189,7 +161,7 @@ export function ApplicationsView({
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label htmlFor="app-type-select" style={{ fontSize: 12, color: "#94a3b8" }}>
+                  <label htmlFor="app-type-select" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                     Service Type
                   </label>
                   <select
@@ -216,7 +188,7 @@ export function ApplicationsView({
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 150px", gap: 10 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label htmlFor="app-url-input" style={{ fontSize: 12, color: "#94a3b8" }}>
+                  <label htmlFor="app-url-input" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                     Deployed URL
                   </label>
                   <input
@@ -238,7 +210,7 @@ export function ApplicationsView({
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label htmlFor="app-health-input" style={{ fontSize: 12, color: "#94a3b8" }}>
+                  <label htmlFor="app-health-input" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                     Health Path
                   </label>
                   <input
@@ -260,7 +232,7 @@ export function ApplicationsView({
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label htmlFor="app-repo-input" style={{ fontSize: 12, color: "#94a3b8" }}>
+                <label htmlFor="app-repo-input" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                   GitHub Repo URL (optional, enables Fix PRs)
                 </label>
                 <input
@@ -281,7 +253,7 @@ export function ApplicationsView({
               </div>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                <span style={{ fontSize: 12, color: "#94a3b8" }}>
+                <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                   Starts synthetic probing immediately and generates a dedicated webhook endpoint.
                 </span>
                 <button type="submit" className="btn btn-primary" disabled={connecting}>
@@ -296,14 +268,14 @@ export function ApplicationsView({
                 className="undo-plan-box"
                 style={{
                   marginTop: 14,
-                  borderColor: connectFeedback.ok ? "rgba(16, 185, 129, 0.4)" : "rgba(239, 68, 68, 0.4)",
+                  borderColor: connectFeedback.ok ? "var(--safe-border)" : "var(--danger-border)",
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 600, color: connectFeedback.ok ? "#6ee7b7" : "#fca5a5" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: connectFeedback.ok ? "var(--safe)" : "var(--danger)" }}>
                   {connectFeedback.message}
                 </div>
                 {connectFeedback.webhookUrl && (
-                  <div className="mono" style={{ fontSize: 12, color: "#cbd5e1", marginTop: 6 }}>
+                  <div className="mono" style={{ fontSize: 12, color: "var(--ink-secondary)", marginTop: 6 }}>
                     Webhook: {connectFeedback.webhookUrl}
                     {connectFeedback.token ? ` · Token: ${connectFeedback.token}` : ""}
                   </div>
@@ -317,11 +289,11 @@ export function ApplicationsView({
         <section className="panel" aria-label="Live Fault Simulator Controls">
           <div className="panel-header">
             <h2 className="panel-title">
-              <Flame size={15} color="#f59e0b" />
+              <Flame size={15} color="var(--warn)" />
               <span>Live Fault Simulator</span>
             </h2>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <label htmlFor="sim-target-select" style={{ fontSize: 12, color: "#94a3b8" }}>
+              <label htmlFor="sim-target-select" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                 Target:
               </label>
               <select
@@ -363,7 +335,7 @@ export function ApplicationsView({
                     <span style={{ fontWeight: 600, fontSize: 13 }}>{sc.label}</span>
                     <span className="badge badge-muted mono">{sc.rule}</span>
                   </div>
-                  <span style={{ fontSize: 12, color: "#94a3b8" }}>{sc.detail}</span>
+                  <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{sc.detail}</span>
                 </div>
                 <button
                   type="button"
@@ -387,7 +359,7 @@ export function ApplicationsView({
                 borderTop: "1px solid var(--border-hairline)",
               }}
             >
-              <span style={{ fontSize: 12, color: "#94a3b8" }}>
+              <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                 Restore all microservices to baseline healthy telemetry.
               </span>
               <button
@@ -410,10 +382,10 @@ export function ApplicationsView({
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: 10,
-                  borderColor: simFeedback.ok ? "rgba(34, 211, 238, 0.4)" : "rgba(239, 68, 68, 0.4)",
+                  borderColor: simFeedback.ok ? "var(--accent-border)" : "var(--danger-border)",
                 }}
               >
-                <span style={{ fontSize: 13, color: simFeedback.ok ? "#67e8f9" : "#fca5a5" }}>
+                <span style={{ fontSize: 13, color: simFeedback.ok ? "var(--accent)" : "var(--danger)" }}>
                   {simFeedback.message}
                 </span>
                 {simFeedback.ok && (
@@ -432,14 +404,14 @@ export function ApplicationsView({
       <section className="panel" aria-label="Monitored Connected Applications">
         <div className="panel-header">
           <h2 className="panel-title">
-            <Activity size={15} color="#10b981" />
+            <Activity size={15} color="var(--safe)" />
             <span>Monitored Connected Applications</span>
           </h2>
           <span className="badge badge-muted mono">{applications.length} connected</span>
         </div>
         <div className="data-table-wrap">
           {applications.length === 0 ? (
-            <div className="panel-body" style={{ color: "#94a3b8", fontSize: 13 }}>
+            <div className="panel-body" style={{ color: "var(--ink-muted)", fontSize: 13 }}>
               No external applications connected yet. Use the form above to hook in any deployed URL.
             </div>
           ) : (
@@ -458,8 +430,8 @@ export function ApplicationsView({
                 {applications.map((app) => (
                   <tr key={app.id}>
                     <td>
-                      <div style={{ fontWeight: 600, color: "#f1f5f9" }}>{app.name}</div>
-                      <div className="mono" style={{ fontSize: 12, color: "#64748b" }}>
+                      <div style={{ fontWeight: 600, color: "var(--ink-primary)" }}>{app.name}</div>
+                      <div className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                         {app.id}
                       </div>
                     </td>
@@ -485,7 +457,7 @@ export function ApplicationsView({
                         {app.status}
                       </span>
                     </td>
-                    <td className="mono" style={{ fontSize: 12, color: "#cbd5e1" }}>
+                    <td className="mono" style={{ fontSize: 12, color: "var(--ink-secondary)" }}>
                       HTTP {app.lastProbe?.statusCode ?? 0} · {app.lastProbe?.latencyMs ?? 0}ms
                     </td>
                     <td>

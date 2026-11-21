@@ -53,11 +53,11 @@ export function ApprovalsMatrixView({
               <Shield size={13} />
               TIER 1: AUTO
             </span>
-            <span className="mono" style={{ fontSize: 12, color: "#6ee7b7" }}>
+            <span className="mono" style={{ fontSize: 12, color: "var(--safe)" }}>
               Autonomous
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#cbd5e1" }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-secondary)" }}>
             Reversible, non-destructive diagnostics and isolated remediation with zero production IAM keys.
           </p>
           <ul className="tier-list">
@@ -73,11 +73,11 @@ export function ApprovalsMatrixView({
               <ShieldAlert size={13} />
               TIER 2: ASK_FIRST
             </span>
-            <span className="mono" style={{ fontSize: 12, color: "#fcd34d" }}>
+            <span className="mono" style={{ fontSize: 12, color: "var(--warn)" }}>
               1-Tap Operator Gate
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#cbd5e1" }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-secondary)" }}>
             Production traffic or main-branch mutations require explicit human 1-tap approval + recorded undoPlan.
           </p>
           <ul className="tier-list">
@@ -93,11 +93,11 @@ export function ApprovalsMatrixView({
               <ShieldOff size={13} />
               TIER 3: NEVER
             </span>
-            <span className="mono" style={{ fontSize: 12, color: "#fca5a5" }}>
+            <span className="mono" style={{ fontSize: 12, color: "var(--danger)" }}>
               Hard Policy Block
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#cbd5e1" }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-secondary)" }}>
             High blast-radius operations are permanently prohibited; agent emits operator runbooks only.
           </p>
           <ul className="tier-list">
@@ -138,8 +138,8 @@ export function ApprovalsMatrixView({
               padding: "4px 10px",
             }}
           >
-            <KeyRound size={14} color="#22d3ee" />
-            <label htmlFor="operator-token-input" style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap" }}>
+            <KeyRound size={14} color="var(--accent)" />
+            <label htmlFor="operator-token-input" style={{ fontSize: 12, color: "var(--ink-muted)", whiteSpace: "nowrap" }}>
               Operator Key
             </label>
             <input
@@ -156,7 +156,7 @@ export function ApprovalsMatrixView({
                 padding: "4px 8px",
                 fontSize: 12,
                 width: 190,
-                color: "#f1f5f9",
+                color: "var(--ink-primary)",
               }}
             />
             <button
@@ -188,7 +188,7 @@ export function ApprovalsMatrixView({
                 <div className="approval-head">
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span className="mono" style={{ fontSize: 12, color: "#94a3b8" }}>
+                      <span className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                         {item.id}
                       </span>
                       <span className="badge badge-muted mono">{item.incidentId}</span>
@@ -203,7 +203,7 @@ export function ApprovalsMatrixView({
                       >
                         {item.status}
                       </span>
-                      <span className="mono" style={{ fontSize: 12, color: "#64748b" }}>
+                      <span className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                         Target: {item.target}
                       </span>
                     </div>
@@ -232,13 +232,13 @@ export function ApprovalsMatrixView({
                       </button>
                     </div>
                   ) : (
-                    <span className="mono" style={{ fontSize: 12, color: "#94a3b8" }}>
+                    <span className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                       {item.status} by {item.decidedBy} at {item.decidedAt ? formatClock(item.decidedAt) : ""}
                     </span>
                   )}
                 </div>
 
-                <p style={{ margin: 0, fontSize: 13, color: "#cbd5e1" }}>{item.rationale}</p>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-secondary)" }}>{item.rationale}</p>
 
                 <ul className="tier-list">
                   {item.evidenceCitations.map((cite, idx) => (
@@ -254,7 +254,7 @@ export function ApprovalsMatrixView({
                       gap: 6,
                       fontSize: 12,
                       fontWeight: 600,
-                      color: "#67e8f9",
+                      color: "var(--accent)",
                       marginBottom: 4,
                     }}
                   >
@@ -292,10 +292,10 @@ export function ApprovalsMatrixView({
             <tbody>
               {auditLog.map((row) => (
                 <tr key={row.id}>
-                  <td className="mono" style={{ whiteSpace: "nowrap", color: "#94a3b8" }}>
+                  <td className="mono" style={{ whiteSpace: "nowrap", color: "var(--ink-muted)" }}>
                     {formatClock(row.timestamp)}
                   </td>
-                  <td className="mono" style={{ color: "#cbd5e1" }}>
+                  <td className="mono" style={{ color: "var(--ink-secondary)" }}>
                     {row.actor}
                   </td>
                   <td>
@@ -312,7 +312,7 @@ export function ApprovalsMatrixView({
                     </span>
                   </td>
                   <td>{row.action}</td>
-                  <td className="mono" style={{ color: "#94a3b8" }}>
+                  <td className="mono" style={{ color: "var(--ink-muted)" }}>
                     {row.target}
                   </td>
                   <td>

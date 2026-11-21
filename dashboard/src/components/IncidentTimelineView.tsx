@@ -55,7 +55,7 @@ function MetricSparkChart({ incident }: { incident: IncidentRecord }) {
     .join(" ");
   const baselineY = toY(points[0]?.baseline ?? 0);
 
-  const strokeColor = incident.ruleId === "BIZ_ORDERS_DROP" ? "#f59e0b" : "#ef4444";
+  const strokeColor = incident.ruleId === "BIZ_ORDERS_DROP" ? "var(--warn)" : "var(--danger)";
 
   return (
     <div style={{ padding: "8px 0 4px" }}>
@@ -71,11 +71,11 @@ function MetricSparkChart({ incident }: { incident: IncidentRecord }) {
           y1={baselineY}
           x2={width - padX}
           y2={baselineY}
-          stroke="rgba(16, 185, 129, 0.45)"
+          stroke="rgba(21, 128, 61, 0.35)"
           strokeDasharray="4 4"
           strokeWidth="1.2"
         />
-        <text x={width - padX} y={Math.max(11, baselineY - 4)} fill="#6ee7b7" fontSize="10" textAnchor="end">
+        <text x={width - padX} y={Math.max(11, baselineY - 4)} fill="var(--safe)" fontSize="10" textAnchor="end">
           baseline ({points[0]?.baseline}
           {incident.metricUnit})
         </text>
@@ -89,7 +89,7 @@ function MetricSparkChart({ incident }: { incident: IncidentRecord }) {
             <text
               x={toX(idx)}
               y={height - 2}
-              fill="#64748b"
+              fill="var(--ink-muted)"
               fontSize="10"
               textAnchor="middle"
               fontFamily="JetBrains Mono, monospace"
@@ -220,7 +220,7 @@ export function IncidentTimelineView({
               onClick={() => setSelectedId(inc.id)}
             >
               <div className="incident-item-top">
-                <span className="mono" style={{ fontSize: 12, color: "#94a3b8" }}>
+                <span className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                   {inc.id}
                 </span>
                 <span
@@ -252,7 +252,7 @@ export function IncidentTimelineView({
           <div className="panel-header">
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span className="mono" style={{ color: "#94a3b8", fontSize: 12 }}>
+                <span className="mono" style={{ color: "var(--ink-muted)", fontSize: 12 }}>
                   {selected.id}
                 </span>
                 <span className={`badge ${selected.severity === "Critical" ? "badge-critical" : "badge-high"}`}>
@@ -332,7 +332,7 @@ export function IncidentTimelineView({
           </div>
 
           <div className="panel-body">
-            <p style={{ margin: "0 0 14px", color: "#cbd5e1" }}>{selected.diagnosisSummary}</p>
+            <p style={{ margin: "0 0 14px", color: "var(--ink-secondary)" }}>{selected.diagnosisSummary}</p>
             <div className="kv-grid">
               <div className="kv-item">
                 <div className="kv-key">Service</div>
@@ -340,13 +340,13 @@ export function IncidentTimelineView({
               </div>
               <div className="kv-item">
                 <div className="kv-key">Time-to-Diagnosis</div>
-                <div className="kv-val mono" style={{ color: "#22d3ee" }}>
+                <div className="kv-val mono" style={{ color: "var(--accent)" }}>
                   {(selected.timeToDiagnosisMs / 1000).toFixed(1)}s
                 </div>
               </div>
               <div className="kv-item">
                 <div className="kv-key">Brain Confidence</div>
-                <div className="kv-val mono" style={{ color: "#6ee7b7" }}>
+                <div className="kv-val mono" style={{ color: "var(--safe)" }}>
                   {Math.round(selected.confidence * 100)}%
                 </div>
               </div>
@@ -391,7 +391,7 @@ export function IncidentTimelineView({
           <div className="panel">
             <div className="panel-header">
               <h3 className="panel-title">Watcher Metric Signal ({selected.ruleId})</h3>
-              <span className="mono" style={{ fontSize: 12, color: "#94a3b8" }}>
+              <span className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                 10s Prometheus Poll
               </span>
             </div>
@@ -404,14 +404,14 @@ export function IncidentTimelineView({
                     style={{
                       fontSize: 12,
                       fontWeight: 600,
-                      color: "#94a3b8",
+                      color: "var(--ink-muted)",
                       marginBottom: 8,
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
                     }}
                   >
-                    <Sparkles size={13} color="#22d3ee" />
+                    <Sparkles size={13} color="var(--accent)" />
                     <span>Pre-Patch Failing -&gt; Post-Patch Passing Verification Gate</span>
                   </div>
                   <div className="test-proof-grid">
@@ -419,7 +419,7 @@ export function IncidentTimelineView({
                       <span className="badge badge-critical mono" style={{ marginBottom: 6 }}>
                         BEFORE PATCH: FAIL
                       </span>
-                      <div className="mono" style={{ fontSize: 12, color: "#fca5a5" }}>
+                      <div className="mono" style={{ fontSize: 12, color: "var(--danger)" }}>
                         {selected.testProof.beforeOutput}
                       </div>
                     </div>
@@ -428,7 +428,7 @@ export function IncidentTimelineView({
                         <CheckCircle2 size={12} />
                         AFTER PATCH: PASS
                       </span>
-                      <div className="mono" style={{ fontSize: 12, color: "#6ee7b7" }}>
+                      <div className="mono" style={{ fontSize: 12, color: "var(--safe)" }}>
                         {selected.testProof.afterOutput}
                       </div>
                     </div>
@@ -442,14 +442,14 @@ export function IncidentTimelineView({
                     style={{
                       fontSize: 12,
                       fontWeight: 600,
-                      color: "#94a3b8",
+                      color: "var(--ink-muted)",
                       marginBottom: 8,
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
                     }}
                   >
-                    <ServerCrash size={14} color="#ef4444" />
+                    <ServerCrash size={14} color="var(--danger)" />
                     <span>Path C Runtime Fault: docker inspect Snapshot</span>
                   </div>
                   <div className="kv-grid">
@@ -459,7 +459,7 @@ export function IncidentTimelineView({
                     </div>
                     <div className="kv-item">
                       <div className="kv-key">Status / Exit Code</div>
-                      <div className="kv-val mono" style={{ color: "#fca5a5" }}>
+                      <div className="kv-val mono" style={{ color: "var(--danger)" }}>
                         {selected.containerState.status} ({selected.containerState.exitCode})
                       </div>
                     </div>
@@ -483,7 +483,7 @@ export function IncidentTimelineView({
           <div className="panel">
             <div className="panel-header">
               <h3 className="panel-title">
-                <GitCommit size={15} color="#22d3ee" />
+                <GitCommit size={15} color="var(--accent)" />
                 <span>Culprit Finder Evidence (topFrame Stack Frame &amp; git blame Diff)</span>
               </h3>
               {selected.culpritFile && (
@@ -496,10 +496,10 @@ export function IncidentTimelineView({
             <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {selected.topFrame && (
                 <div className="code-block">
-                  <div style={{ color: "#fca5a5", marginBottom: 4 }}>{selected.topFrame.error}</div>
-                  <div style={{ color: "#94a3b8" }}>
-                    topFrame: <span style={{ color: "#67e8f9" }}>{selected.topFrame.function}()</span> at{" "}
-                    <span style={{ color: "#f1f5f9" }}>
+                  <div style={{ color: "var(--danger)", marginBottom: 4 }}>{selected.topFrame.error}</div>
+                  <div style={{ color: "var(--ink-muted)" }}>
+                    topFrame: <span style={{ color: "var(--accent)" }}>{selected.topFrame.function}()</span> at{" "}
+                    <span style={{ color: "var(--ink-primary)" }}>
                       {selected.topFrame.file}:{selected.topFrame.line}:{selected.topFrame.column}
                     </span>
                   </div>
@@ -517,7 +517,7 @@ export function IncidentTimelineView({
           <div className="panel">
             <div className="panel-header">
               <h3 className="panel-title">
-                <Box size={15} color="#22d3ee" />
+                <Box size={15} color="var(--accent)" />
                 <span>The Hands Execution Record (Zero Prod IAM Keys)</span>
               </h3>
               <span className="badge badge-auto">AUTO TIER WHITELISTED</span>
@@ -535,7 +535,7 @@ export function IncidentTimelineView({
           <div className="panel" aria-label="Counterfactual Strategy Comparison">
             <div className="panel-header">
               <h3 className="panel-title">
-                <Scale size={15} color="#22d3ee" />
+                <Scale size={15} color="var(--accent)" />
                 <span>Counterfactual Strategy Comparison</span>
               </h3>
               <span className="badge badge-cyan mono">
@@ -545,10 +545,10 @@ export function IncidentTimelineView({
             <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {selected.selectedStrategyRationale && (
                 <div className="undo-plan-box" style={{ marginTop: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#67e8f9", marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", marginBottom: 4 }}>
                     Why Recommended Strategy Won
                   </div>
-                  <div style={{ fontSize: 13, color: "#e2e8f0" }}>{selected.selectedStrategyRationale}</div>
+                  <div style={{ fontSize: 13, color: "var(--ink-primary)" }}>{selected.selectedStrategyRationale}</div>
                 </div>
               )}
 
@@ -577,19 +577,19 @@ export function IncidentTimelineView({
                           key={`${ev.strategyName}-${idx}`}
                           style={
                             isRecommended
-                              ? { background: "rgba(34, 211, 238, 0.06)" }
+                              ? { background: "var(--accent-soft)" }
                               : undefined
                           }
                         >
                           <td>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                <span style={{ fontWeight: 600, color: "#f1f5f9" }}>{ev.strategyName}</span>
+                                <span style={{ fontWeight: 600, color: "var(--ink-primary)" }}>{ev.strategyName}</span>
                                 {isRecommended && (
                                   <span className="badge badge-safe mono">RECOMMENDED</span>
                                 )}
                               </div>
-                              <span className="mono" style={{ fontSize: 12, color: "#94a3b8" }}>
+                              <span className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                                 {ev.actionType} · {ev.requiredAuthorization}
                               </span>
                             </div>
@@ -597,16 +597,16 @@ export function IncidentTimelineView({
                           <td>
                             <span className={`badge ${riskBadgeClass} mono`}>{ev.riskOfWorsening}</span>
                           </td>
-                          <td className="mono" style={{ fontSize: 12, color: "#cbd5e1" }}>
+                          <td className="mono" style={{ fontSize: 12, color: "var(--ink-secondary)" }}>
                             {ev.reversibility}
                           </td>
-                          <td className="mono" style={{ fontWeight: 700, color: isRecommended ? "#22d3ee" : "#cbd5e1" }}>
+                          <td className="mono" style={{ fontWeight: 700, color: isRecommended ? "var(--accent)" : "var(--ink-secondary)" }}>
                             {ev.heuristicScore}/100
                           </td>
-                          <td style={{ fontSize: 13, color: "#cbd5e1", minWidth: 240 }}>
+                          <td style={{ fontSize: 13, color: "var(--ink-secondary)", minWidth: 240 }}>
                             <div>{ev.counterfactualReasoning}</div>
                             {ev.cascadingRisk && (
-                              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
+                              <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 4 }}>
                                 Cascading risk: {ev.cascadingRisk}
                               </div>
                             )}

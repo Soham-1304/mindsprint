@@ -1,4 +1,4 @@
-export type ActiveTab = "incidents" | "approvals" | "sietch" | "applications";
+export type ActiveTab = "projects" | "incidents" | "sietch" | "approvals" | "applications";
 
 export type DiagnosisSource = "AI_GEMINI" | "AI_GROQ" | "DETERMINISTIC_HEURISTIC";
 

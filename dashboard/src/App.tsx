@@ -1,12 +1,13 @@
+import { CheckCircle2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ApplicationsView } from "./components/ApplicationsView";
 import { ApprovalsMatrixView } from "./components/ApprovalsMatrixView";
 import { IncidentTimelineView } from "./components/IncidentTimelineView";
 import { PostmortemDrawer } from "./components/PostmortemDrawer";
+import { ProjectsOverviewView } from "./components/ProjectsOverviewView";
 import { ImportProjectDialog } from "./components/ProjectsPanel";
+import { SidebarShell } from "./components/SidebarShell";
 import { SietchChamberView } from "./components/SietchChamberView";
-import { TelemetryReadinessBar } from "./components/TelemetryReadinessBar";
-import { TopScorecard } from "./components/TopScorecard";
 import { FALLBACK_OVERVIEW } from "./data/fallbackData";
 import type { ActiveTab, ConnectedApplication, DashboardOverview, LinkedProject } from "./types";
 
@@ -23,7 +24,7 @@ function resolveWsUrl(): string {
 export function App() {
   const [data, setData] = useState<DashboardOverview>(FALLBACK_OVERVIEW);
   const [applications, setApplications] = useState<ConnectedApplication[]>([]);
-  const [activeTab, setActiveTab] = useState<ActiveTab>("incidents");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("projects");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerIncidentId, setDrawerIncidentId] = useState<string | null>(null);
   const [sseConnected, setSseConnected] = useState(false);
@@ -34,6 +35,16 @@ export function App() {
     FALLBACK_OVERVIEW.activeProjectId ?? "pulseshop",
   );
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [installNotice, setInstallNotice] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("github_installed") === "1") {
+      const id = params.get("installation_id");
+      return id
+        ? `Patch-Up SRE GitHub App connected (Installation #${id}). Select a repository to import.`
+        : "Patch-Up SRE GitHub App connected. Select a repository to import.";
+    }
+    return null;
+  });
 
   const projects = data.projects ?? FALLBACK_OVERVIEW.projects ?? [];
   const activeProject = projects.find((p) => p.id === selectedProjectId) ?? projects[0];
@@ -70,7 +81,6 @@ export function App() {
     void fetchOverview();
     void fetchApplications();
 
-    // 1. Server-Sent Events (SSE)
     const es = new EventSource(`${API_BASE}/api/events/stream`);
     const refreshFromEvent = () => {
       void fetchOverview();
@@ -95,7 +105,6 @@ export function App() {
       setSseConnected(false);
     };
 
-    // 2. WebSocket (/ws) dual live transport
     let ws: WebSocket | null = null;
     try {
       ws = new WebSocket(resolveWsUrl());
@@ -156,7 +165,7 @@ export function App() {
           return;
         }
       } catch {
-        // Offline snapshot fallback mutation
+        // Offline fallback
       }
       setData((prev) => {
         const nowIso = new Date().toISOString();
@@ -195,7 +204,7 @@ export function App() {
           await fetchOverview();
         }
       } catch {
-        // Ignore if control plane is offline
+        // Offline
       }
     },
     [fetchOverview],
@@ -243,7 +252,7 @@ export function App() {
         await fetch(`${API_BASE}/api/applications/${id}/probe`, { method: "POST" });
         await fetchApplications();
       } catch {
-        // Ignore if offline
+        // Offline
       }
     },
     [fetchApplications],
@@ -304,7 +313,7 @@ export function App() {
           await fetchOverview();
         }
       } catch {
-        // Ignore if backend is offline
+        // Offline
       }
     },
     [fetchOverview],
@@ -323,7 +332,7 @@ export function App() {
           await fetchOverview();
         }
       } catch {
-        // Ignore if backend is offline
+        // Offline
       }
     },
     [fetchOverview, selectedProjectId],
@@ -347,79 +356,108 @@ export function App() {
   );
 
   return (
-    <div className="app-shell">
-      <TopScorecard
-        target={data.target}
-        scorecard={data.scorecard}
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        onOpenPostmortems={() => {
-          setDrawerIncidentId(null);
-          setDrawerOpen(true);
-        }}
-        postmortemCount={data.postmortems.length}
-        connectedAppsCount={applications.length}
-        sseConnected={sseConnected}
-        wsConnected={wsConnected}
-        projects={projects}
-        activeProjectId={activeProject?.id ?? selectedProjectId}
-        monitoringMode={monitoringMode}
-        onSelectProject={setSelectedProjectId}
-        onOpenImportProject={() => setImportDialogOpen(true)}
-      />
+    <SidebarShell
+      activeTab={activeTab}
+      onSelectTab={setActiveTab}
+      scorecard={data.scorecard}
+      postmortemCount={data.postmortems.length}
+      connectedAppsCount={applications.length}
+      sseConnected={sseConnected}
+      wsConnected={wsConnected}
+      projects={projects}
+      activeProjectId={activeProject?.id ?? selectedProjectId}
+      monitoringMode={monitoringMode}
+      onSelectProject={setSelectedProjectId}
+      onOpenImportProject={() => setImportDialogOpen(true)}
+      onOpenPostmortems={() => {
+        setDrawerIncidentId(null);
+        setDrawerOpen(true);
+      }}
+    >
+      {installNotice && (
+        <div className="install-banner" role="status">
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <CheckCircle2 size={16} color="var(--accent)" aria-hidden="true" />
+            <span>{installNotice}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setInstallNotice(null);
+                setImportDialogOpen(true);
+              }}
+            >
+              Import Repo
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              aria-label="Dismiss notice"
+              onClick={() => setInstallNotice(null)}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
-      <TelemetryReadinessBar
-        project={activeProject}
-        apiBase={API_BASE}
-        onRescanSignals={handleRescanSignals}
-      />
+      {activeTab === "projects" && (
+        <ProjectsOverviewView
+          apiBase={API_BASE}
+          projects={projects}
+          activeProject={activeProject}
+          scorecard={data.scorecard}
+          incidents={data.incidents}
+          approvals={data.approvals}
+          githubApp={data.githubApp}
+          ephemeralTotalPurged={data.ephemeralStats?.totalPurged ?? 0}
+          onSelectProject={setSelectedProjectId}
+          onOpenImportDialog={() => setImportDialogOpen(true)}
+          onRescanSignals={handleRescanSignals}
+          onDeleteProject={handleDeleteProject}
+          onNavigateIncidents={() => setActiveTab("incidents")}
+          onNavigateApprovals={() => setActiveTab("approvals")}
+        />
+      )}
 
-      <main className="main-workspace">
-        {activeTab === "incidents" && (
-          <IncidentTimelineView
-            incidents={data.incidents}
-            apiBase={API_BASE}
-            onOpenPostmortem={handleOpenPostmortemForIncident}
-          />
-        )}
+      {activeTab === "incidents" && (
+        <IncidentTimelineView
+          incidents={data.incidents}
+          apiBase={API_BASE}
+          onOpenPostmortem={handleOpenPostmortemForIncident}
+        />
+      )}
 
-        {activeTab === "approvals" && (
-          <ApprovalsMatrixView
-            approvals={data.approvals}
-            auditLog={data.auditLog}
-            operatorToken={operatorToken}
-            onChangeOperatorToken={setOperatorToken}
-            approvalError={approvalError}
-            onDecideApproval={handleDecideApproval}
-          />
-        )}
+      {activeTab === "approvals" && (
+        <ApprovalsMatrixView
+          approvals={data.approvals}
+          auditLog={data.auditLog}
+          operatorToken={operatorToken}
+          onChangeOperatorToken={setOperatorToken}
+          approvalError={approvalError}
+          onDecideApproval={handleDecideApproval}
+        />
+      )}
 
-        {activeTab === "sietch" && (
-          <SietchChamberView
-            scans={data.sietchScans}
-            onTriggerBranchScan={handleTriggerBranchScan}
-          />
-        )}
+      {activeTab === "sietch" && (
+        <SietchChamberView
+          scans={data.sietchScans}
+          onTriggerBranchScan={handleTriggerBranchScan}
+        />
+      )}
 
-        {activeTab === "applications" && (
-          <ApplicationsView
-            apiBase={API_BASE}
-            projects={projects}
-            activeProjectId={activeProject?.id ?? selectedProjectId}
-            githubApp={data.githubApp}
-            onSelectProject={setSelectedProjectId}
-            onProjectImported={handleProjectImported}
-            onRescanSignals={handleRescanSignals}
-            onDeleteProject={handleDeleteProject}
-            applications={applications}
-            onConnectApplication={handleConnectApplication}
-            onProbeApplication={handleProbeApplication}
-            onSimulateFault={handleSimulateFault}
-            onResetIncidents={handleResetIncidents}
-            onJumpToIncidents={() => setActiveTab("incidents")}
-          />
-        )}
-      </main>
+      {activeTab === "applications" && (
+        <ApplicationsView
+          applications={applications}
+          onConnectApplication={handleConnectApplication}
+          onProbeApplication={handleProbeApplication}
+          onSimulateFault={handleSimulateFault}
+          onResetIncidents={handleResetIncidents}
+          onJumpToIncidents={() => setActiveTab("incidents")}
+        />
+      )}
 
       <ImportProjectDialog
         open={importDialogOpen}
@@ -440,7 +478,7 @@ export function App() {
         selectedIncidentId={drawerIncidentId}
         onClose={() => setDrawerOpen(false)}
       />
-    </div>
+    </SidebarShell>
   );
 }
 

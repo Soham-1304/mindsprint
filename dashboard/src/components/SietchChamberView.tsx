@@ -163,14 +163,14 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
               {activeScan.blocked ? <AlertOctagon size={14} /> : <CheckCircle2 size={14} />}
               VERDICT: {activeScan.verdictKind} {activeScan.blocked ? "// PR MERGE BLOCKED" : "// CLEAR"}
             </span>
-            <span className="mono" style={{ fontSize: 12, color: "#94a3b8" }}>
+            <span className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
               PR #{activeScan.prNumber ?? "?"} ({activeScan.branch}) · commit {activeScan.commitSha ?? "HEAD"} ·{" "}
               {activeScan.durationMs}ms
             </span>
           </div>
 
           <div style={{ fontSize: 15, fontWeight: 600 }}>{activeScan.githubCheckRun.title}</div>
-          <div className="mono" style={{ fontSize: 12, color: "#94a3b8" }}>
+          <div className="mono" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
             @sietch/core ruleset v{activeScan.rulesetVersion}
             {detonation ? ` · mode: ${detonation.mode} · cacheKey: ${detonation.cacheKey.slice(0, 48)}...` : ""}
           </div>
@@ -178,13 +178,13 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
 
         {/* Ecosystem Adapter Badge */}
         <div className="ecosystem-bar mono" aria-label="Ecosystem Adapters">
-          <Layers size={13} color="#22d3ee" />
+          <Layers size={13} color="var(--accent)" />
           {activeScan.ecosystemAdapters.map((adapter, idx) => (
             <span key={adapter.id} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               {idx > 0 && <span style={{ color: "#475569" }}>|</span>}
-              <span style={{ color: adapter.status === "active" ? "#6ee7b7" : "#94a3b8" }}>
+              <span style={{ color: adapter.status === "active" ? "var(--safe)" : "var(--ink-muted)" }}>
                 {adapter.label}{" "}
-                <span style={{ color: adapter.status === "active" ? "#10b981" : "#64748b" }}>
+                <span style={{ color: adapter.status === "active" ? "var(--safe)" : "var(--ink-muted)" }}>
                   [{adapter.status === "active" ? "active" : "adapter spec"}]
                 </span>
               </span>
@@ -198,7 +198,7 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
         <section className="panel" aria-label="Honeytoken Tripwire Grid">
           <div className="panel-header">
             <h2 className="panel-title">
-              <KeyRound size={15} color="#22d3ee" />
+              <KeyRound size={15} color="var(--accent)" />
               <span>
                 Layer 1 Honeytoken Tripwire Grid ({detonation.honeytokensPlanted} Checksum-Valid Fakes Planted via
                 @sietch/sandbox)
@@ -228,7 +228,7 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
                       {tw.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#94a3b8" }}>{tw.detail}</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>{tw.detail}</div>
                   {tw.ruleIds.length > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       {tw.ruleIds.map((rid) => (
@@ -256,7 +256,7 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
         <section className="panel" aria-label="Layer 2 Typosquat and Fresh Package Guard">
           <div className="panel-header">
             <h3 className="panel-title">
-              <Bug size={15} color="#f59e0b" />
+              <Bug size={15} color="var(--warn)" />
               <span>Layer 2: Slopsquat / Typosquat &amp; Fresh-Pkg Guard</span>
             </h3>
             <span
@@ -273,7 +273,7 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
           </div>
           <div className="panel-body">
             {activeScan.layer2Typosquat.findings.length === 0 ? (
-              <div style={{ color: "#94a3b8", fontSize: 13 }}>
+              <div style={{ color: "var(--ink-muted)", fontSize: 13 }}>
                 No typosquatting, slopsquatting, or fresh-package anomalies detected across{" "}
                 {activeScan.layer2Typosquat.checkedPackages} package(s).
               </div>
@@ -285,11 +285,11 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
                       <span className={`badge ${f.severity === "Critical" ? "badge-critical" : "badge-high"} mono`}>
                         {f.code}
                       </span>
-                      <span className="mono" style={{ fontSize: 12, color: "#f1f5f9" }}>
+                      <span className="mono" style={{ fontSize: 12, color: "var(--ink-primary)" }}>
                         {f.packageName}
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, color: "#cbd5e1" }}>{f.explanation}</div>
+                    <div style={{ fontSize: 13, color: "var(--ink-secondary)" }}>{f.explanation}</div>
                   </div>
                 ))}
               </div>
@@ -301,7 +301,7 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
         <section className="panel" aria-label="Layer 3 PR Diff Guard">
           <div className="panel-header">
             <h3 className="panel-title">
-              <FileWarning size={15} color="#ef4444" />
+              <FileWarning size={15} color="var(--danger)" />
               <span>Layer 3: PR Diff Guard (Secrets &amp; Infra Configs)</span>
             </h3>
             <span
@@ -318,24 +318,24 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
           </div>
           <div className="panel-body">
             {activeScan.layer3DiffGuard.findings.length === 0 ? (
-              <div style={{ color: "#94a3b8", fontSize: 13 }}>
+              <div style={{ color: "var(--ink-muted)", fontSize: 13 }}>
                 Scanned {activeScan.layer3DiffGuard.filesScanned} file(s) ({activeScan.layer3DiffGuard.linesScanned}{" "}
                 diff lines): zero leaked secrets or unsafe container configs.
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {activeScan.layer3DiffGuard.findings.map((f, idx) => (
-                  <div key={idx} className="kv-item" style={{ borderColor: "rgba(239, 68, 68, 0.45)" }}>
+                  <div key={idx} className="kv-item" style={{ borderColor: "var(--danger-border)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                       <span className={`badge ${f.severity === "Critical" ? "badge-critical" : "badge-high"} mono`}>
                         {f.code}
                       </span>
-                      <span className="mono" style={{ fontSize: 12, color: "#67e8f9" }}>
+                      <span className="mono" style={{ fontSize: 12, color: "var(--accent)" }}>
                         {f.file}
                         {f.line ? `:${f.line}` : ""}
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, color: "#cbd5e1", marginBottom: 6 }}>{f.explanation}</div>
+                    <div style={{ fontSize: 13, color: "var(--ink-secondary)", marginBottom: 6 }}>{f.explanation}</div>
                     <pre className="code-block" style={{ padding: "6px 10px" }}>
                       {f.snippet}
                     </pre>
@@ -352,12 +352,12 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
         <section className="panel" aria-label="Sietch Rule Findings and Syscall Stream">
           <div className="panel-header">
             <h3 className="panel-title">
-              <TerminalSquare size={15} color="#22d3ee" />
+              <TerminalSquare size={15} color="var(--accent)" />
               <span>
                 Live Detonation Trace (seq #1..#{detonation.events.length}) &amp; @sietch/core judge() Citations
               </span>
             </h3>
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#94a3b8" }}>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--ink-muted)" }}>
               <input
                 type="checkbox"
                 checked={onlyFlaggedSeq}
@@ -372,7 +372,7 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
             <div
               style={{
                 padding: "12px 18px",
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
+                borderBottom: "1px solid var(--border-subtle)",
                 display: "flex",
                 flexDirection: "column",
                 gap: 8,
@@ -389,9 +389,9 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
                     <ShieldAlert size={12} />
                     {f.ruleId} ({f.severity})
                   </span>
-                  <span style={{ fontSize: 13, color: "#f1f5f9", fontWeight: 500 }}>{f.title}:</span>
-                  <span style={{ fontSize: 13, color: "#cbd5e1" }}>{f.explanation}</span>
-                  <span className="mono" style={{ fontSize: 12, color: "#22d3ee" }}>
+                  <span style={{ fontSize: 13, color: "var(--ink-primary)", fontWeight: 500 }}>{f.title}:</span>
+                  <span style={{ fontSize: 13, color: "var(--ink-secondary)" }}>{f.explanation}</span>
+                  <span className="mono" style={{ fontSize: 12, color: "var(--accent)" }}>
                     [{f.evidence.map((s) => `seq #${s}`).join(", ")}]
                   </span>
                 </div>
@@ -418,10 +418,10 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
                   const rules = seqToRules.get(evt.seq) ?? [];
                   return (
                     <tr key={evt.seq} className={rules.length > 0 ? "seq-row-flagged" : ""}>
-                      <td className="mono" style={{ color: "#22d3ee", whiteSpace: "nowrap" }}>
+                      <td className="mono" style={{ color: "var(--accent)", whiteSpace: "nowrap" }}>
                         #{evt.seq}
                       </td>
-                      <td className="mono" style={{ color: "#94a3b8", whiteSpace: "nowrap" }}>
+                      <td className="mono" style={{ color: "var(--ink-muted)", whiteSpace: "nowrap" }}>
                         +{evt.t}ms
                       </td>
                       <td>
@@ -430,13 +430,13 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
                       <td className="mono" style={{ fontWeight: 600 }}>
                         {evt.type}
                       </td>
-                      <td className="mono" style={{ color: "#94a3b8" }}>
+                      <td className="mono" style={{ color: "var(--ink-muted)" }}>
                         {evt.pid ?? "sink"}
                       </td>
                       <td className="mono" style={{ wordBreak: "break-all" }}>
                         <div>{summarizeEvent(evt)}</div>
                         {evt.type === "http" && evt.body && (
-                          <div style={{ color: "#fca5a5", fontSize: 12, marginTop: 4 }}>
+                          <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>
                             body: {evt.body.slice(0, 120)}
                             {evt.body.length > 120 ? "..." : ""}
                           </div>

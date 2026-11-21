@@ -44,7 +44,7 @@ function renderInline(text: string): ReactNode[] {
     const token = match[0];
     if (token.startsWith("**") && token.endsWith("**")) {
       parts.push(
-        <strong key={match.index} style={{ color: "#f1f5f9" }}>
+        <strong key={match.index} style={{ color: "var(--ink-primary)" }}>
           {token.slice(2, -2)}
         </strong>,
       );
@@ -86,7 +86,7 @@ function MarkdownPreview({ markdown }: { markdown: string }) {
           const text = trimmed.replace(/^(?:- |\d+\.\s)/, "");
           return (
             <div key={idx} style={{ display: "flex", gap: 8, paddingLeft: 6 }}>
-              <span style={{ color: "#22d3ee" }}>•</span>
+              <span style={{ color: "var(--accent)" }}>•</span>
               <p>{renderInline(text)}</p>
             </div>
           );
@@ -207,12 +207,12 @@ export function PostmortemDrawer({
     >
       <div className="drawer-header">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <FileText size={18} color="#22d3ee" />
+          <FileText size={18} color="var(--accent)" />
           <div>
             <h2 id={headingId} style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
               Auto-Generated Postmortems
             </h2>
-            <div style={{ fontSize: 12, color: "#94a3b8" }}>
+            <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>
               Generated automatically on RESOLVED transition with 3-timestamp TTD proof
             </div>
           </div>
@@ -250,10 +250,10 @@ export function PostmortemDrawer({
         {selected ? (
           <>
             {/* 3-Timestamp TTD Breakdown */}
-            <div className="panel" style={{ background: "#0a0d12" }}>
+            <div className="panel" style={{ background: "var(--bg-canvas)" }}>
               <div className="panel-header" style={{ padding: "10px 14px" }}>
                 <span className="panel-title" style={{ fontSize: 13 }}>
-                  <Clock size={14} color="#22d3ee" />
+                  <Clock size={14} color="var(--accent)" />
                   <span>3-Timestamp TTD Breakdown (vs. {formatMs(selected.manualBaselineMs)} Manual)</span>
                 </span>
                 <span className="speedup-tag mono">
@@ -266,23 +266,23 @@ export function PostmortemDrawer({
                   <div className="kv-item">
                     <div className="kv-key mono">1. faultStartAt</div>
                     <div className="kv-val mono">{formatIsoShort(selected.faultStartAt)}</div>
-                    <div style={{ fontSize: 12, color: "#94a3b8" }}>Fault injected</div>
+                    <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Fault injected</div>
                   </div>
                   <div className="kv-item">
                     <div className="kv-key mono">2. alarmRaisedAt</div>
-                    <div className="kv-val mono" style={{ color: "#fcd34d" }}>
+                    <div className="kv-val mono" style={{ color: "var(--warn)" }}>
                       {formatIsoShort(selected.alarmRaisedAt)}
                     </div>
-                    <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                    <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                       +{formatMs(selected.detectionLagMs)} Watcher lag
                     </div>
                   </div>
                   <div className="kv-item">
                     <div className="kv-key mono">3. causeNamedAt</div>
-                    <div className="kv-val mono" style={{ color: "#22d3ee" }}>
+                    <div className="kv-val mono" style={{ color: "var(--accent)" }}>
                       {formatIsoShort(selected.causeNamedAt)}
                     </div>
-                    <div style={{ fontSize: 12, color: "#6ee7b7" }}>
+                    <div style={{ fontSize: 12, color: "var(--safe)" }}>
                       +{formatMs(selected.diagnosisDurationMs)} Brain TTD
                     </div>
                   </div>
@@ -298,7 +298,7 @@ export function PostmortemDrawer({
                   <span>Export .md</span>
                 </button>
                 <button type="button" className="btn" onClick={handleCopy}>
-                  {copied ? <Check size={14} color="#6ee7b7" /> : <Copy size={14} />}
+                  {copied ? <Check size={14} color="var(--safe)" /> : <Copy size={14} />}
                   <span>{copied ? "Copied Markdown" : "Copy Markdown"}</span>
                 </button>
               </div>
@@ -314,7 +314,7 @@ export function PostmortemDrawer({
             <MarkdownPreview markdown={selected.markdown} />
           </>
         ) : (
-          <div style={{ color: "#94a3b8" }}>No postmortems have been generated yet.</div>
+          <div style={{ color: "var(--ink-muted)" }}>No postmortems have been generated yet.</div>
         )}
       </div>
     </dialog>
