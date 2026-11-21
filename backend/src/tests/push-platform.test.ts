@@ -182,6 +182,18 @@ describe('Push-Ephemeral Privacy, SQLite, Sietch Self-Gate & Surgical Patch Plat
       expect(patched.patchedContent).toContain('promo?.discountMeta?.percentage ?? 0');
     }
 
+    // Whitespace / indentation-tolerant unique match
+    const wsPatched = applySurgicalPatch(original, {
+      targetFile: 'services/orders/src/routes/orders.js',
+      originalBlock: 'function calc(promo) {\n      return promo.discountMeta.percentage;\n}',
+      replacementBlock: 'function calc(promo) {\n  return promo?.discountMeta?.percentage ?? 0;\n}',
+    });
+    expect(wsPatched.ok).toBe(true);
+    if (wsPatched.ok) {
+      expect(wsPatched.patchedContent).toContain('promo?.discountMeta?.percentage ?? 0');
+      expect(wsPatched.patchedContent).toContain('const footer = true;');
+    }
+
     const inc = incidentManager.createIncident(
       'syntax-gate-svc',
       'Syntax gate test',

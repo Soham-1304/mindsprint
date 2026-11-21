@@ -32,18 +32,71 @@ export function applySurgicalPatch(
   if (!patch || !patch.originalBlock || patch.originalBlock.trim().length === 0) {
     return { ok: false, reason: 'SurgicalPatch originalBlock is empty' };
   }
+
+  // Tier 1: Exact substring match
   const idx = fullSource.indexOf(patch.originalBlock);
-  if (idx === -1) {
+  if (idx !== -1) {
+    const patchedContent =
+      fullSource.slice(0, idx) +
+      patch.replacementBlock +
+      fullSource.slice(idx + patch.originalBlock.length);
+    return { ok: true, patchedContent };
+  }
+
+  // Tier 2: Whitespace / indentation-tolerant contiguous line match (must match uniquely)
+  const normSource = fullSource.replace(/\r\n/g, '\n');
+  const sourceLines = normSource.split('\n');
+  const origLines = patch.originalBlock
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  if (origLines.length === 0) {
     return {
       ok: false,
       reason: `originalBlock not found in target file '${patch.targetFile}'`,
     };
   }
-  const patchedContent =
-    fullSource.slice(0, idx) +
-    patch.replacementBlock +
-    fullSource.slice(idx + patch.originalBlock.length);
-  return { ok: true, patchedContent };
+
+  const matches: Array<{ startIdx: number; endIdx: number }> = [];
+  for (let i = 0; i < sourceLines.length; i++) {
+    if (sourceLines[i].trim() !== origLines[0]) continue;
+    let srcCursor = i;
+    let origCursor = 0;
+    while (srcCursor < sourceLines.length && origCursor < origLines.length) {
+      const trimmed = sourceLines[srcCursor].trim();
+      if (trimmed.length === 0) {
+        srcCursor += 1;
+        continue;
+      }
+      if (trimmed !== origLines[origCursor]) break;
+      origCursor += 1;
+      srcCursor += 1;
+    }
+    if (origCursor === origLines.length) {
+      matches.push({ startIdx: i, endIdx: srcCursor });
+    }
+  }
+
+  if (matches.length === 1) {
+    const { startIdx, endIdx } = matches[0];
+    const replacementLines = patch.replacementBlock.replace(/\r\n/g, '\n').split('\n');
+    const updatedLines = [
+      ...sourceLines.slice(0, startIdx),
+      ...replacementLines,
+      ...sourceLines.slice(endIdx),
+    ];
+    return { ok: true, patchedContent: updatedLines.join('\n') };
+  }
+
+  return {
+    ok: false,
+    reason:
+      matches.length > 1
+        ? `originalBlock matched ${matches.length} ambiguous locations in '${patch.targetFile}'`
+        : `originalBlock not found in target file '${patch.targetFile}'`,
+  };
 }
 
 export class BrainService {

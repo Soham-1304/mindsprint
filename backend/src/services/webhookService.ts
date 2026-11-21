@@ -290,7 +290,8 @@ export class WebhookService {
     if (!SLACK_URL && !DISCORD_URL && !NTFY_TOPIC_URL && !PAGERDUTY_ROUTING_KEY) return;
 
     const diag = incident.diagnosis;
-    const summaryText = `🚨 [SRE AGENT ALARM] Incident ${incident.id} on ${incident.serviceId}: ${diag?.rootCause || incident.title}`;
+    const prNote = incident.fixPrUrl ? ` | Fix PR: ${incident.fixPrUrl}` : '';
+    const summaryText = `[Patch-Up Alert] ${incident.id} on ${incident.serviceId}: ${diag?.rootCause || incident.title}${prNote}`;
 
     const tasks: Promise<unknown>[] = [];
 
@@ -302,7 +303,7 @@ export class WebhookService {
             text: summaryText,
             attachments: [
               {
-                color: incident.severity === 'CRITICAL' ? '#e02424' : '#f59e0b',
+                color: incident.severity === 'CRITICAL' ? '#e02424' : '#ea580c',
                 title: incident.title,
                 fields: [
                   { title: 'Status', value: incident.status, short: true },
@@ -310,7 +311,7 @@ export class WebhookService {
                   { title: 'Diagnosis', value: diag?.rootCause || 'Under investigation', short: false },
                   { title: 'Remediation', value: diag?.suggestedFix.description || 'N/A', short: false },
                 ],
-                footer: 'Patch-Up + Sietch SRE Agent',
+                footer: 'Patch-Up Autonomous SRE',
                 ts: Math.floor(Date.now() / 1000),
               },
             ],
@@ -329,9 +330,10 @@ export class WebhookService {
         axios.post(NTFY_TOPIC_URL, summaryText, {
           timeout: 2500,
           headers: {
-            Title: `SRE Alarm: ${incident.id} (${incident.serviceId})`,
+            Title: `Patch-Up Alert: ${incident.id} (${incident.serviceId})`,
             Priority: 'urgent',
             Tags: 'rotating_light,warning',
+            ...(incident.fixPrUrl ? { Click: incident.fixPrUrl } : {}),
           },
         })
       );
@@ -549,8 +551,8 @@ export class WebhookService {
           incidentManager.setDiagnosis(incident.id, diagnosis);
           wsBroadcaster.broadcast('INCIDENT_DIAGNOSED', incidentManager.getById(incident.id));
 
-          await this.dispatchOutgoingAlert(incident);
           await handsService.handleRemediation(incident);
+          await this.dispatchOutgoingAlert(incidentManager.getById(incident.id) || incident);
           wsBroadcaster.broadcast('INCIDENT_UPDATED', incidentManager.getById(incident.id));
         } catch (err: any) {
           console.error(`[WebhookService] Async Push-On-Break pipeline error for ${incident.id}:`, err?.message || err);
