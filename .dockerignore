@@ -1,0 +1,9 @@
+.git
+**/node_modules
+dashboard/dist
+backend/dist
+backend/data/*.sqlite*
+**/.env
+**/.vercel
+.DS_Store
+*.log

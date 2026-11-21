@@ -1,0 +1,1 @@
+{"version":3,"file":"generic.d.ts","sourceRoot":"","sources":["../../src/honeytokens/generic.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,GAAG,EAAe,MAAM,WAAW,CAAC;AAGlD,eAAO,MAAM,cAAc,KAAK,CAAC;AAIjC,oGAAoG;AACpG,wBAAgB,QAAQ,CAAC,GAAG,EAAE,GAAG,EAAE,MAAM,GAAE,MAAuB,GAAG,MAAM,CAK1E;AAED,kEAAkE;AAClE,wBAAgB,QAAQ,CAAC,KAAK,EAAE,MAAM,EAAE,MAAM,GAAE,MAAuB,GAAG,OAAO,CAEhF"}

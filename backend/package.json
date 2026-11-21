@@ -1,0 +1,35 @@
+{
+  "name": "@sre-agent/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Unified AI Site-Reliability Agent + Sietch 3-Layer Preventive Suite Backend (AIA-02)",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "dev:sietch": "tsx watch src/sietch/standalone-server.ts",
+    "start:sietch": "tsx src/sietch/standalone-server.ts",
+    "test": "vitest run",
+    "test:sietch": "vitest run src/sietch/sietch.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:sietch": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
+    "ws": "^8.18.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

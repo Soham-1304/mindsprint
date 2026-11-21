@@ -1,0 +1,17 @@
+{
+  "name": "@sietch-demo/currency-format-lite",
+  "version": "1.0.2",
+  "description": "Lightweight zero-dependency currency formatting and rounding helper (Sietch AIA-02 Demo Fixture)",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "keywords": [
+    "currency",
+    "format",
+    "rounding",
+    "finance"
+  ],
+  "author": "currency-format-lite maintainers",
+  "license": "MIT"
+}

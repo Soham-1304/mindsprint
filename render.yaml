@@ -1,0 +1,63 @@
+# Render Blueprint for Section 3 Control Plane (Aegis SRE Agent + Sietch Backend)
+# Pre-deploy step: run ./backend/scripts/vendor-sietch.sh and commit vendor/sietch
+# (or build with SIETCH_KIROWEEN_DIR pointing to vendored @sietch/core & @sietch/sandbox dist/).
+
+services:
+  - type: web
+    name: aegis-sre-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: MONITORING_MODE
+        value: push-ephemeral
+      - key: SQLITE_DB_PATH
+        value: /tmp/aegis.sqlite
+      - key: AEGIS_WEBHOOK_URL
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_SLUG
+        value: aegis-sre-agent
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: SIETCH_KIROWEEN_DIR
+        value: /app/backend/vendor/sietch
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_OWNER
+        value: Soham-1304
+      - key: GITHUB_REPO
+        value: pulseshop
+      - key: GATEWAY_URL
+        value: https://pulseshop-gateway-41zp9bnd4-2024sohamk-isuacins-projects.vercel.app
+      - key: ORDERS_URL
+        value: https://pulseshop-orders-7zi3gxoeo-2024sohamk-isuacins-projects.vercel.app
+      - key: PAYMENTS_URL
+        value: https://pulseshop-payments-7e3kr3j5d-2024sohamk-isuacins-projects.vercel.app
+      - key: OPERATOR_APPROVAL_TOKEN
+        value: aegis-operator-2026
+      - key: DASHBOARD_PUBLIC_URL
+        sync: false
+      - key: SLACK_WEBHOOK_URL
+        sync: false
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+      - key: NTFY_TOPIC_URL
+        sync: false
+      - key: PAGERDUTY_ROUTING_KEY
+        sync: false

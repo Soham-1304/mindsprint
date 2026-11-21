@@ -1,0 +1,1 @@
+{"version":3,"file":"config.d.ts","sourceRoot":"","sources":["../../../src/images/proxy/config.ts"],"names":[],"mappings":"AAGA;;;;GAIG;AAEH,MAAM,WAAW,WAAW;IAC1B,QAAQ,CAAC,YAAY,EAAE,MAAM,CAAC;IAC9B,QAAQ,CAAC,UAAU,EAAE,SAAS,MAAM,EAAE,CAAC;CACxC;AAED,wBAAgB,eAAe,CAAC,GAAG,EAAE,QAAQ,CAAC,MAAM,CAAC,MAAM,EAAE,MAAM,GAAG,SAAS,CAAC,CAAC,GAAG,WAAW,GAAG,IAAI,CAWrG"}

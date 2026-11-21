@@ -1,0 +1,1 @@
+{"version":3,"file":"syscalls-x86-64.d.ts","sourceRoot":"","sources":["../src/syscalls-x86-64.ts"],"names":[],"mappings":"AASA,mDAAmD;AACnD,eAAO,MAAM,sBAAsB,YACjC,MAAM,EACN,OAAO,EACP,QAAQ,EACR,QAAQ,EACR,SAAS,EACT,MAAM,EACN,OAAO,EACP,OAAO,EACP,MAAM,EACN,OAAO,EACP,OAAO,CACC,CAAC;AAEX,eAAO,MAAM,sBAAsB,iXAAiE,CAAC"}

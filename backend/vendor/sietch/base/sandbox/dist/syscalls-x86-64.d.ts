@@ -1,0 +1,4 @@
+/** Calls that exist on x86-64 but not on ARM64. */
+export declare const LEGACY_SYSCALLS_X86_64: readonly ["open", "creat", "unlink", "rename", "symlink", "link", "chmod", "mkdir", "fork", "vfork", "mknod"];
+export declare const TRACED_SYSCALLS_X86_64: readonly ["execve", "execveat", "openat", "unlinkat", "renameat", "renameat2", "symlinkat", "linkat", "fchmodat", "mkdirat", "connect", "sendto", "sendmsg", "clone", "clone3", "exit_group", "wait4", "waitid", "kill", "tgkill", "chdir", "fchdir", "openat2", "mknodat", "open", "creat", "unlink", "rename", "symlink", "link", "chmod", "mkdir", "fork", "vfork", "mknod"];
+//# sourceMappingURL=syscalls-x86-64.d.ts.map

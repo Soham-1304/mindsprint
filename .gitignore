@@ -1,0 +1,13 @@
+node_modules/
+**/node_modules/
+dashboard/dist/
+backend/dist/
+backend/data/*.sqlite
+backend/data/*.sqlite-wal
+backend/data/*.sqlite-shm
+.env
+**/.env
+.vercel
+**/.vercel
+.DS_Store
+*.log

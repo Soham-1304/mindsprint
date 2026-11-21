@@ -1,0 +1,32 @@
+{
+  "name": "@sietch/sandbox",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sietch sandbox runner: fake credentials, fake environment, and the pure checks around one gVisor detonation.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "build:images": "node dist/images/build-cli.js all",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "fast-check": "4.10.2",
+    "vitest": "5.1.0"
+  },
+  "dependencies": {
+    "@sietch/core": "workspace:*",
+    "zod": "4.6.7"
+  }
+}

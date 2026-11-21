@@ -1,0 +1,28 @@
+# Standalone Section 3 Control Plane (GCP VM / Local Docker)
+# Usage:
+#   1. cp backend/.env.example backend/.env  (and fill in keys)
+#   2. ./backend/scripts/vendor-sietch.sh    (vendors @sietch/core & @sietch/sandbox dist/)
+#   3. docker compose -f docker-compose.sre-agent.yml up --build -d
+
+services:
+  sre-agent-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SIETCH_KIROWEEN_DIR: /app/backend/vendor/sietch
+    container_name: aegis-sre-backend
+    ports:
+      - "5050:5050"
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: "5050"
+      SIETCH_KIROWEEN_DIR: /app/backend/vendor/sietch
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5050/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
