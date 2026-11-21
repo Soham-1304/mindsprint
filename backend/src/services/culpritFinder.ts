@@ -360,7 +360,7 @@ export class CulpritFinder {
     const rawFile = incident.evidence.topFrame?.file || incident.evidence.suspectCommit?.file;
     if (!rawFile) return;
 
-    const jitFile = this.normalizeRepoFile(rawFile);
+    const jitFile = this.normalizeRepoFile(rawFile, incident.serviceId);
     const project = incident.projectId ? projectManager.getProject(incident.projectId) : undefined;
     const ref =
       incident.evidence.suspectCommit?.sha && incident.evidence.suspectCommit.sha !== 'HEAD'
@@ -398,10 +398,18 @@ export class CulpritFinder {
     return undefined;
   }
 
-  private normalizeRepoFile(filePath: string): string {
+  private normalizeRepoFile(filePath: string, serviceId?: string): string {
     const cleaned = filePath.replace(/^\/app\//, '').replace(/^\/var\/task\//, '');
     const servicesIdx = cleaned.indexOf('services/');
-    return servicesIdx !== -1 ? cleaned.slice(servicesIdx) : cleaned.replace(/^\/+/, '');
+    if (servicesIdx !== -1) return cleaned.slice(servicesIdx);
+    const trimmed = cleaned.replace(/^\/+/, '');
+    const svc = (serviceId || '').replace(/-service$/, '');
+    if (svc && trimmed.startsWith('src/')) {
+      return `services/${svc}/${trimmed}`;
+    }
+    if (trimmed === 'orders.js') return 'services/orders/src/routes/orders.js';
+    if (trimmed === 'payments.js') return 'services/payments/src/routes/payments.js';
+    return trimmed;
   }
 
   private async runGitBlame(

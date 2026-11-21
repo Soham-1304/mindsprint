@@ -9,6 +9,7 @@ import { brainService } from './brainService.js';
 import { handsService } from './handsService.js';
 import { projectManager } from './projectManager.js';
 import { ephemeralVault, redactSensitiveText } from '../privacy/ephemeralVault.js';
+import { githubAppAuth } from '../github-app/auth.js';
 import { prBot } from '../pr-bot/index.js';
 import { wsBroadcaster } from '../api/websocket.js';
 import { createSietchStore } from '../sietch/router.js';
@@ -54,6 +55,14 @@ export class WebhookService {
     revertPrUrl?: string;
   }> {
     const repoName = payload.repository?.full_name || `${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}`;
+    const [repoOwner, repoShortName] = repoName.includes('/')
+      ? repoName.split('/')
+      : [CONFIG.GITHUB_OWNER, repoName];
+
+    if (payload.installation?.id && Number.isFinite(Number(payload.installation.id))) {
+      await githubAppAuth.registerInstallation(Number(payload.installation.id));
+    }
+
     logCollector.appendLog('gateway-service', `[GitHub Webhook] Received '${event}' event from ${repoName}`);
 
     if (event === 'push') {
@@ -83,7 +92,7 @@ export class WebhookService {
         // Fetch diff and run Sietch 3-Layer Preventive Suite
         const diffText =
           (typeof payload.diffText === 'string' && payload.diffText) ||
-          (await prBot.fetchCommitDiff(commitSha));
+          (await prBot.fetchCommitDiff(commitSha, repoOwner, repoShortName));
 
         if (diffText.trim().length > 0) {
           const scan = await runSietchPrSuite({
@@ -96,7 +105,7 @@ export class WebhookService {
           sietchStore.addScan(scan);
           wsBroadcaster.broadcast('SIETCH_SCAN_COMPLETE', scan);
 
-          await prBot.postSietchCheckStatus({ commitSha, scan });
+          await prBot.postSietchCheckStatus({ commitSha, scan, repoOwner, repoName: repoShortName });
 
           let revertPrUrl: string | undefined;
           if (branch === 'main' && scan.verdictKind === 'MALICIOUS') {
@@ -109,6 +118,8 @@ export class WebhookService {
               incidentId: scan.id,
               commitSha,
               reason: `Sietch blocked MALICIOUS commit ${shortSha}: ${scan.githubCheckRun.title}`,
+              repoOwner,
+              repoName: repoShortName,
             });
             revertPrUrl = revertPr.prUrl;
             incidentManager.recordAudit({
@@ -150,7 +161,7 @@ export class WebhookService {
       if (action === 'opened' || action === 'synchronize' || action === 'reopened') {
         const diffText =
           (typeof payload.diffText === 'string' && payload.diffText) ||
-          (await prBot.fetchPullRequestDiff(prNumber));
+          (await prBot.fetchPullRequestDiff(prNumber, repoOwner, repoShortName));
 
         if (diffText.trim().length > 0) {
           const scan = await runSietchPrSuite({
@@ -167,7 +178,7 @@ export class WebhookService {
           }
           wsBroadcaster.broadcast('SIETCH_SCAN_COMPLETE', scan);
 
-          await prBot.postSietchCheckStatus({ commitSha, scan });
+          await prBot.postSietchCheckStatus({ commitSha, scan, repoOwner, repoName: repoShortName });
 
           return {
             processed: true,

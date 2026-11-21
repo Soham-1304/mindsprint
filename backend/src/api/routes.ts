@@ -430,16 +430,19 @@ router.get('/gate/:release', (req: Request, res: Response) => {
 router.post('/webhooks/github', async (req: Request, res: Response) => {
   const signature = req.headers['x-hub-signature-256'] as string | undefined;
   const rawBody: Buffer | string = (req as any).rawBody || JSON.stringify(req.body || {});
+  const event = (req.headers['x-github-event'] as string) || 'push';
 
   if (!webhookService.verifyGitHubSignature(rawBody, signature)) {
+    console.warn(`[GitHub Webhook] Rejected '${event}' — invalid X-Hub-Signature-256.`);
     return res.status(401).json({ error: 'Invalid GitHub webhook signature' });
   }
 
-  const event = (req.headers['x-github-event'] as string) || 'push';
+  console.log(`[GitHub Webhook] Accepted '${event}' from ${req.body?.repository?.full_name || 'unknown'}`);
   try {
     const result = await webhookService.handleGitHubEvent(event, req.body || {});
     return res.json({ success: true, result });
   } catch (err: any) {
+    console.error(`[GitHub Webhook] Handler error for '${event}':`, err?.message || err);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -474,11 +477,15 @@ router.post(['/webhooks/incident-bundle', '/webhooks/cloudwatch'], async (req: R
 // ==========================================
 // 4b. GitHub App & Vercel-Style Project Onboarding
 // ==========================================
-router.get('/github/status', (_req: Request, res: Response) => {
+router.get('/github/status', async (_req: Request, res: Response) => {
+  let installations = sqliteStore.getInstallations();
+  if (installations.length === 0 && githubAppAuth.isConfigured()) {
+    installations = await githubAppAuth.syncInstallationsFromGitHub();
+  }
   res.json({
     configured: githubAppAuth.isConfigured(),
     installUrl: githubAppAuth.getInstallUrl(),
-    installations: sqliteStore.getInstallations(),
+    installations,
   });
 });
 

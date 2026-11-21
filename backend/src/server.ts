@@ -14,6 +14,7 @@ import { brainService } from './services/brainService.js';
 import { handsService } from './services/handsService.js';
 import { syntheticProber } from './services/syntheticProber.js';
 import { sietchStore, webhookService } from './services/webhookService.js';
+import { githubAppAuth } from './github-app/auth.js';
 import { runSietchPrSuite } from './sietch/suite.js';
 
 const execFileAsync = promisify(execFile);
@@ -167,6 +168,7 @@ export function startServer() {
     );
   }
 
+  void githubAppAuth.syncInstallationsFromGitHub();
   void bootstrapSietchScans();
 
   server.listen(CONFIG.PORT, '0.0.0.0', () => {

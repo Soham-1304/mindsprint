@@ -148,6 +148,48 @@ export class GitHubAppAuth {
     return record;
   }
 
+  /**
+   * Syncs all active GitHub App installations directly from GitHub's /app/installations API.
+   * Ensures Render Free / ephemeral SQLite restarts never lose registered installations.
+   */
+  public async syncInstallationsFromGitHub(): Promise<GitHubInstallation[]> {
+    if (!this.isConfigured()) return sqliteStore.getInstallations();
+    try {
+      const jwt = this.createAppJwt();
+      const res = await fetch('https://api.github.com/app/installations?per_page=100', {
+        headers: this.githubHeaders(jwt),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.warn(`[GitHubAppAuth] /app/installations sync failed (${res.status}): ${text}`);
+        return sqliteStore.getInstallations();
+      }
+      const list = (await res.json()) as Array<{
+        id: number;
+        account?: { login?: string; type?: string };
+        repository_selection?: 'all' | 'selected';
+        created_at?: string;
+      }>;
+      for (const item of list) {
+        if (!item?.id) continue;
+        sqliteStore.saveInstallation({
+          installationId: item.id,
+          accountLogin: item.account?.login || CONFIG.GITHUB_OWNER,
+          accountType: item.account?.type || 'User',
+          repositorySelection: item.repository_selection === 'all' ? 'all' : 'selected',
+          createdAt: item.created_at || new Date().toISOString(),
+        });
+      }
+      if (list.length > 0) {
+        console.log(`[GitHubAppAuth] Synced ${list.length} GitHub App installation(s) from GitHub API.`);
+      }
+    } catch (err: any) {
+      console.warn('[GitHubAppAuth] Could not sync installations from GitHub:', err?.message || err);
+    }
+    return sqliteStore.getInstallations();
+  }
+
   public async listAccessibleRepos(installationId?: number): Promise<AccessibleRepo[]> {
     const repos: AccessibleRepo[] = [];
     const seen = new Set<string>();
@@ -170,10 +212,15 @@ export class GitHubAppAuth {
 
     // 1. GitHub App installation(s)
     if (this.isConfigured()) {
-      const targetInstallations =
+      let targetInstallations =
         installationId != null
           ? [installationId]
           : sqliteStore.getInstallations().map((i) => i.installationId);
+
+      if (targetInstallations.length === 0 && installationId == null) {
+        const synced = await this.syncInstallationsFromGitHub();
+        targetInstallations = synced.map((i) => i.installationId);
+      }
 
       for (const instId of targetInstallations) {
         try {
@@ -242,9 +289,40 @@ export class GitHubAppAuth {
 
     let candidateInstallationId = project?.installationId;
     if (candidateInstallationId == null) {
-      const installations = sqliteStore.getInstallations();
-      if (installations.length > 0) {
+      let installations = sqliteStore.getInstallations();
+      if (installations.length === 0 && this.isConfigured()) {
+        installations = await this.syncInstallationsFromGitHub();
+      }
+      const ownerMatch = installations.find(
+        (i) => i.accountLogin.toLowerCase() === owner.toLowerCase()
+      );
+      if (ownerMatch) {
+        candidateInstallationId = ownerMatch.installationId;
+      } else if (installations.length > 0) {
         candidateInstallationId = installations[0].installationId;
+      }
+    }
+
+    // Direct lookup via GitHub App API if still unknown
+    if (candidateInstallationId == null && this.isConfigured()) {
+      try {
+        const jwt = this.createAppJwt();
+        const res = await fetch(
+          `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/installation`,
+          {
+            headers: this.githubHeaders(jwt),
+            signal: AbortSignal.timeout(10000),
+          }
+        );
+        if (res.ok) {
+          const data = (await res.json()) as { id?: number };
+          if (data?.id) {
+            candidateInstallationId = data.id;
+            await this.registerInstallation(data.id);
+          }
+        }
+      } catch {
+        // Fallback below
       }
     }
 
