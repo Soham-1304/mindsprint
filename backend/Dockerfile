@@ -3,7 +3,7 @@
 # Build from the sre-agent/ root context:
 #   1. (For Cloud / Render / Railway / GCP where Kiroween isn't on disk):
 #      ./backend/scripts/vendor-sietch.sh
-#   2. docker build -f backend/Dockerfile -t aegis-sre-backend .
+#   2. docker build -f backend/Dockerfile -t patch-up-backend .
 #
 # You may also override SIETCH_KIROWEEN_DIR at build/runtime if mounting Kiroween externally.
 

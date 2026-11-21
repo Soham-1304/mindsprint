@@ -28,7 +28,7 @@ export function App() {
   const [drawerIncidentId, setDrawerIncidentId] = useState<string | null>(null);
   const [sseConnected, setSseConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
-  const [operatorToken, setOperatorToken] = useState("aegis-operator-2026");
+  const [operatorToken, setOperatorToken] = useState("patchup-operator-2026");
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     FALLBACK_OVERVIEW.activeProjectId ?? "pulseshop",

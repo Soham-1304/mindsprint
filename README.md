@@ -1,11 +1,11 @@
-# AEGIS — AI Site-Reliability Agent + Sietch 3-Layer Preventive Shield (MindSprint 2026 · AIA-02)
+# Patch-Up — AI Site-Reliability Agent + Sietch 3-Layer Preventive Shield (MindSprint 2026 · AIA-02)
 
-**AEGIS** combines a **Push-Based, Zero-Retention AI Site-Reliability Agent** with the **Sietch 3-Layer Supply-Chain & Pre-Merge Shield**.
+**Patch-Up** combines a **Push-Based, Zero-Retention AI Site-Reliability Agent** with the **Sietch 3-Layer Supply-Chain & Pre-Merge Shield**.
 
 ## Architecture
 
 - **Push-First, Zero-Retention Privacy (`MONITORING_MODE=push-ephemeral`)**: Customer infrastructure (App Error Hooks, ELK/Logstash, Prometheus Alertmanager, Grafana, AWS CloudWatch SNS) pushes a 6-hour rolling window **only when a tracked metric breaches**. Raw logs & JIT source buffers live strictly in volatile RAM (`EphemeralVault`), are PII/secret-scrubbed before LLM analysis, and are **immediately purged** once a Fix PR + RCA Report is raised (leaving a SHA-256 **Purge Receipt** with `0 bytes retained`).
-- **Multi-Tenant GitHub App & Strict PR-Only Guardrail**: Any user installs the AEGIS GitHub App on selected or all repositories via 1-click, imports a project just like Vercel, and receives automated PRs (`aegis-sre-agent[bot]`). Direct commits/pushes to `main`/`master` are permanently blocked (`POLICY_BLOCKED`).
+- **Multi-Tenant GitHub App & Strict PR-Only Guardrail**: Any user installs the Patch-Up GitHub App on selected or all repositories via 1-click, imports a project just like Vercel, and receives automated PRs (`patch-up[bot]`). Direct commits/pushes to `main`/`master` are permanently blocked (`POLICY_BLOCKED`).
 - **Sietch 3-Layer Preventive Shield (Runs at 2 Checkpoints)**:
   1. **Pre-Merge / Push Gate**: Layer 1 behavioral detonation with 15 checksum-valid `@sietch/sandbox` honeytokens + `@sietch/core` deterministic rules (`R1–R10 & R13`), Layer 2 typosquatting/slopsquatting/`<48h` fresh-package guard, Layer 3 PR diff secrets & infra (`mem_limit: 24m`, removed `HEALTHCHECK`) guard.
   2. **Agent Self-Gate**: Runs Sietch on the Agent's own generated Fix PR diff before touching GitHub.

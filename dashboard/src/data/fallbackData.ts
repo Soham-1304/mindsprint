@@ -169,7 +169,7 @@ export const FALLBACK_OVERVIEW: DashboardOverview = {
         receiptHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       },
       rcaReportMarkdown: [
-        "# AEGIS Incident & Fix Report — INC-2026-041",
+        "# Patch-Up Incident & Fix Report — INC-2026-041",
         "",
         "- **Project:** Soham-1304/pulseshop",
         "- **Service:** pulseshop-orders",

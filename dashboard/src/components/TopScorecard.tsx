@@ -73,7 +73,7 @@ export function TopScorecard({
               <ShieldCheck size={18} />
             </div>
             <div>
-              <h1 className="brand-title">AEGIS // SRE AGENT + SIETCH</h1>
+              <h1 className="brand-title">PATCH-UP // SRE AGENT + SIETCH</h1>
               <div className="brand-sub">Deterministic Detection · On-Demand Diagnosis · Pre-Merge Supply-Chain Gate</div>
             </div>
           </div>

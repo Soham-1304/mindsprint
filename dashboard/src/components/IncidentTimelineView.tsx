@@ -149,7 +149,7 @@ export function IncidentTimelineView({
       const resp = await fetch(`${apiBase}/api/incidents/${encodeURIComponent(inc.id)}/report.md`);
       if (resp.ok) {
         const text = await resp.text();
-        triggerMarkdownDownload(`aegis-report-${inc.id}.md`, text);
+        triggerMarkdownDownload(`patch-up-report-${inc.id}.md`, text);
         return;
       }
     } catch {
@@ -161,7 +161,7 @@ export function IncidentTimelineView({
     const fallbackMd =
       inc.rcaReportMarkdown ||
       [
-        `# AEGIS Incident & Fix Report — ${inc.id}`,
+        `# Patch-Up Incident & Fix Report — ${inc.id}`,
         "",
         `- **Title:** ${inc.title}`,
         `- **Service:** pulseshop-${inc.service}`,
@@ -180,7 +180,7 @@ export function IncidentTimelineView({
         .filter(Boolean)
         .join("\n");
 
-    triggerMarkdownDownload(`aegis-report-${inc.id}.md`, fallbackMd);
+    triggerMarkdownDownload(`patch-up-report-${inc.id}.md`, fallbackMd);
   }
 
   function triggerMarkdownDownload(filename: string, content: string) {

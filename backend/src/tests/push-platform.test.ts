@@ -270,7 +270,7 @@ describe('Push-Ephemeral Privacy, SQLite, Sietch Self-Gate & Surgical Patch Plat
       const res = await fetch(`http://127.0.0.1:${addr.port}/api/incidents/${inc.id}/report.md`);
       expect(res.status).toBe(200);
       expect(res.headers.get('content-type')).toContain('text/markdown');
-      expect(res.headers.get('content-disposition')).toContain(`aegis-report-${inc.id}.md`);
+      expect(res.headers.get('content-disposition')).toContain(`patch-up-report-${inc.id}.md`);
       const text = await res.text();
       expect(text).toContain(`# Incident Postmortem & RCA Report: ${inc.id}`);
       expect(text).toContain('bytesRetained: 0');

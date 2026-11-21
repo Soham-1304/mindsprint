@@ -72,7 +72,7 @@ export class GitHubAppAuth {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${bearerToken}`,
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Sietch-Aegis-SRE-Agent/1.0',
+      'User-Agent': 'Patch-Up-Sietch-SRE/1.0',
     };
   }
 

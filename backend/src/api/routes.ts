@@ -231,7 +231,7 @@ function mapIncidentForDashboard(inc: Incident) {
 router.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'UP',
-    agent: 'Unified Aegis + Sietch SRE Agent Backend (AIA-02)',
+    agent: 'Patch-Up + Sietch SRE Agent Backend (AIA-02)',
     timestamp: new Date().toISOString(),
   });
 });
@@ -651,7 +651,7 @@ router.get('/incidents/:id/report.md', (req: Request, res: Response) => {
 
   const markdown = incident.rcaReportMarkdown || buildFullRcaReportMarkdown(incident);
   res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="aegis-report-${id}.md"`);
+  res.setHeader('Content-Disposition', `attachment; filename="patch-up-report-${id}.md"`);
   return res.send(markdown);
 });
 

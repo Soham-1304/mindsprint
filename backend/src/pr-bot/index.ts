@@ -83,7 +83,7 @@ export function buildFullRcaReportMarkdown(incident: Incident): string {
   const diagnosis = incident.diagnosis;
 
   const lines: string[] = [];
-  lines.push(`# Aegis + Sietch Automated RCA Report — \`${incident.id}\``);
+  lines.push(`# Patch-Up + Sietch Automated RCA Report — \`${incident.id}\``);
   lines.push('');
   lines.push('## 1. Executive Summary');
   lines.push(`- **Service**: \`${incident.serviceId}\``);
@@ -225,7 +225,7 @@ export class GitHubPrBot {
     const h: Record<string, string> = {
       Accept: accept,
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Sietch-Aegis-SRE-Agent/1.0',
+      'User-Agent': 'Patch-Up-Sietch-SRE/1.0',
     };
     if (token) {
       h['Authorization'] = `Bearer ${token}`;
@@ -487,7 +487,7 @@ export class GitHubPrBot {
     const { owner, repo } = this.resolveRepo(repoOwner, repoName);
     const { token }: RepoTokenResult = await githubAppAuth.getTokenForRepo(owner, repo);
 
-    const baseRevertBody = `## Automated Revert by Sietch + Aegis SRE Agent\n\n- **Commit**: \`${commitSha}\`\n- **Incident / Scan**: \`${incidentId}\`\n- **Reason**: ${reason}\n`;
+    const baseRevertBody = `## Automated Revert by Patch-Up + Sietch SRE Agent\n\n- **Commit**: \`${commitSha}\`\n- **Incident / Scan**: \`${incidentId}\`\n- **Reason**: ${reason}\n`;
     const fullBody = incident
       ? `${baseRevertBody}\n---\n\n${buildFullRcaReportMarkdown(incident)}`
       : baseRevertBody;

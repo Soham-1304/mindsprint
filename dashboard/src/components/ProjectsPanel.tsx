@@ -158,7 +158,7 @@ export function ProjectsPanel({
             onClick={handleInstallGitHubApp}
           >
             <ExternalLink size={13} />
-            <span>Install AEGIS GitHub App</span>
+            <span>Install Patch-Up GitHub App</span>
           </button>
         </div>
         <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -283,7 +283,7 @@ export function ProjectsPanel({
             })}
             {filteredRepos.length === 0 && (
               <div style={{ color: "#94a3b8", fontSize: 13, padding: 12 }}>
-                No matching repositories found. Click "Install AEGIS GitHub App" to grant access.
+                No matching repositories found. Click "Install Patch-Up GitHub App" to grant access.
               </div>
             )}
           </div>
@@ -395,7 +395,7 @@ export function ImportProjectDialog({ open, onClose, ...panelProps }: ImportProj
       <div className="import-dialog-head">
         <div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-            AEGIS Project Onboarding (GitHub App + Push Telemetry)
+            Patch-Up Project Onboarding (GitHub App + Push Telemetry)
           </h2>
           <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
             Connect a GitHub repository, probe live endpoints, and configure zero-retention push hooks.

@@ -52,7 +52,7 @@ function computeCapabilitiesSummary(
   const warnings: string[] = [];
   if (!signals.githubApp) {
     warnings.push(
-      'GitHub App or token not connected — install the GitHub App so Aegis can read commit diffs and open Fix PRs.'
+      'GitHub App or token not connected — install the Patch-Up GitHub App so it can read commit diffs and open Fix PRs.'
     );
   }
   if (!hasDeployedUrl) {

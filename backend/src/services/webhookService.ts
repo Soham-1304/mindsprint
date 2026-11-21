@@ -299,7 +299,7 @@ export class WebhookService {
                   { title: 'Diagnosis', value: diag?.rootCause || 'Under investigation', short: false },
                   { title: 'Remediation', value: diag?.suggestedFix.description || 'N/A', short: false },
                 ],
-                footer: 'Aegis + Sietch SRE Agent',
+                footer: 'Patch-Up + Sietch SRE Agent',
                 ts: Math.floor(Date.now() / 1000),
               },
             ],

@@ -27,11 +27,11 @@ export const CONFIG = {
   MONITORING_MODE: (process.env.MONITORING_MODE || 'push-ephemeral') as 'push-ephemeral' | 'hybrid' | 'pull',
   EPHEMERAL_WINDOW_HOURS: parseInt(process.env.EPHEMERAL_WINDOW_HOURS || '6', 10),
   EPHEMERAL_TTL_MS: parseInt(process.env.EPHEMERAL_TTL_MS || String(30 * 60 * 1000), 10),
-  SQLITE_DB_PATH: process.env.SQLITE_DB_PATH || path.resolve(__dirname, '../../data/aegis.sqlite'),
+  SQLITE_DB_PATH: process.env.SQLITE_DB_PATH || path.resolve(__dirname, '../../data/patchup.sqlite'),
 
   // Multi-Tenant GitHub App (zero user PATs) + optional local dev GITHUB_TOKEN fallback
   GITHUB_APP_ID: process.env.GITHUB_APP_ID || '',
-  GITHUB_APP_SLUG: process.env.GITHUB_APP_SLUG || 'aegis-sre-agent',
+  GITHUB_APP_SLUG: process.env.GITHUB_APP_SLUG || 'patch-up',
   GITHUB_APP_PRIVATE_KEY: (process.env.GITHUB_APP_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || '',
   GITHUB_OWNER: process.env.GITHUB_OWNER || 'Soham-1304',
@@ -103,7 +103,7 @@ export const CONFIG = {
     'pulseshop-payments': 'pulseshop-payments',
     'test-service': 'disposable-test-container',
   } as Record<string, string>,
-  OPERATOR_APPROVAL_TOKEN: process.env.OPERATOR_APPROVAL_TOKEN || 'aegis-operator-2026',
+  OPERATOR_APPROVAL_TOKEN: process.env.OPERATOR_APPROVAL_TOKEN || 'patchup-operator-2026',
   DOCKER_EXEC_TIMEOUT_MS: parseInt(process.env.DOCKER_EXEC_TIMEOUT_MS || '15000', 10),
 
   // Circuit Breaker & Retry Controls

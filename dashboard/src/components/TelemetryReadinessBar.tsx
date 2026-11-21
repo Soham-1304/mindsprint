@@ -46,9 +46,9 @@ export function TelemetryReadinessBar({
   const snippets: Record<SnippetTab, { label: string; code: string }> = {
     app: {
       label: "App Error Hook (Node / Express)",
-      code: `// Set AEGIS_WEBHOOK_URL=${apiBase || "https://your-aegis-backend.onrender.com"}
-if (process.env.AEGIS_WEBHOOK_URL) {
-  fetch(\`\${process.env.AEGIS_WEBHOOK_URL}/api/webhooks/incident-bundle\`, {
+      code: `// Set PATCHUP_WEBHOOK_URL=${apiBase || "https://patch-up-backend.onrender.com"}
+if (process.env.PATCHUP_WEBHOOK_URL) {
+  fetch(\`\${process.env.PATCHUP_WEBHOOK_URL}/api/webhooks/incident-bundle\`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -77,7 +77,7 @@ if (process.env.AEGIS_WEBHOOK_URL) {
     },
     cloudwatch: {
       label: "AWS CloudWatch SNS",
-      code: `# Subscribe an HTTPS SNS Topic to AEGIS CloudWatch Endpoint:
+      code: `# Subscribe an HTTPS SNS Topic to Patch-Up CloudWatch Endpoint:
 aws sns subscribe \\
   --topic-arn arn:aws:sns:us-east-1:ACCOUNT_ID:prod-alarms \\
   --protocol https \\

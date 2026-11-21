@@ -35,7 +35,7 @@ export function createApp(): Express {
   app.get('/health', (_req, res) => {
     res.json({
       status: 'UP',
-      agent: 'Unified Aegis + Sietch SRE Agent Backend (AIA-02)',
+      agent: 'Patch-Up + Sietch SRE Agent Backend (AIA-02)',
       timestamp: new Date().toISOString(),
     });
   });
@@ -163,7 +163,7 @@ export function startServer() {
     syntheticProber.startProbingLoop(15000);
   } else {
     console.log(
-      `[AEGIS] Running in '${CONFIG.MONITORING_MODE}' mode — autonomous pull scraping disabled (100% Push-On-Break).`
+      `[Patch-Up] Running in '${CONFIG.MONITORING_MODE}' mode — autonomous pull scraping disabled (100% Push-On-Break).`
     );
   }
 

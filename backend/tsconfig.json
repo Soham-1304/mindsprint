@@ -11,8 +11,14 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@sietch/core": ["../../../Kiroween/base/core/dist/index.d.ts"],
-      "@sietch/sandbox": ["../../../Kiroween/base/sandbox/dist/index.d.ts"]
+      "@sietch/core": [
+        "./vendor/sietch/base/core/dist/index.d.ts",
+        "../../../Kiroween/base/core/dist/index.d.ts"
+      ],
+      "@sietch/sandbox": [
+        "./vendor/sietch/base/sandbox/dist/index.d.ts",
+        "../../../Kiroween/base/sandbox/dist/index.d.ts"
+      ]
     }
   },
   "include": ["src/**/*.ts"],

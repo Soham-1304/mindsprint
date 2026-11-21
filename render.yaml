@@ -1,10 +1,10 @@
-# Render Blueprint for Section 3 Control Plane (Aegis SRE Agent + Sietch Backend)
+# Render Blueprint for Section 3 Control Plane (Patch-Up SRE Agent + Sietch Backend)
 # Pre-deploy step: run ./backend/scripts/vendor-sietch.sh and commit vendor/sietch
 # (or build with SIETCH_KIROWEEN_DIR pointing to vendored @sietch/core & @sietch/sandbox dist/).
 
 services:
   - type: web
-    name: aegis-sre-backend
+    name: patch-up-backend
     runtime: docker
     plan: free
     dockerfilePath: ./backend/Dockerfile
@@ -16,13 +16,13 @@ services:
       - key: MONITORING_MODE
         value: push-ephemeral
       - key: SQLITE_DB_PATH
-        value: /tmp/aegis.sqlite
-      - key: AEGIS_WEBHOOK_URL
+        value: /tmp/patchup.sqlite
+      - key: PATCHUP_WEBHOOK_URL
         sync: false
       - key: GITHUB_APP_ID
         sync: false
       - key: GITHUB_APP_SLUG
-        value: aegis-sre-agent
+        value: patch-up
       - key: GITHUB_APP_PRIVATE_KEY
         sync: false
       - key: SIETCH_KIROWEEN_DIR
@@ -50,7 +50,7 @@ services:
       - key: PAYMENTS_URL
         value: https://pulseshop-payments-7e3kr3j5d-2024sohamk-isuacins-projects.vercel.app
       - key: OPERATOR_APPROVAL_TOKEN
-        value: aegis-operator-2026
+        value: patchup-operator-2026
       - key: DASHBOARD_PUBLIC_URL
         sync: false
       - key: SLACK_WEBHOOK_URL

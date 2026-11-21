@@ -11,7 +11,7 @@ services:
       dockerfile: backend/Dockerfile
       args:
         SIETCH_KIROWEEN_DIR: /app/backend/vendor/sietch
-    container_name: aegis-sre-backend
+    container_name: patch-up-backend
     ports:
       - "5050:5050"
     env_file:

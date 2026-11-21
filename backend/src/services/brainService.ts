@@ -1023,7 +1023,7 @@ ${logsSanitized}
       fixedFileContent &&
       (!targetFile || /\.(js|mjs|cjs)$/i.test(targetFile))
     ) {
-      const syntaxTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'aegis-syntax-'));
+      const syntaxTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'patchup-syntax-'));
       try {
         const syntaxFile = path.join(syntaxTmp, path.basename(targetFile || 'patch.js'));
         fs.writeFileSync(syntaxFile, fixedFileContent, 'utf8');
@@ -1055,7 +1055,7 @@ ${logsSanitized}
       };
     }
 
-    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aegis-test-gate-'));
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'patchup-test-gate-'));
     const tmpOrdersDir = path.join(tmpRoot, 'services', 'orders');
     const sharedDir = path.join(CONFIG.PULSESHOP_REPO_DIR, 'services', 'shared');
     const tmpSharedDir = path.join(tmpRoot, 'services', 'shared');
