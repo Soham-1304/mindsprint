@@ -506,7 +506,7 @@ export class HandsService {
       }
 
       // 3. SIETCH SELF-GATE (Checkpoint 2): Scan Agent's proposed Fix PR diff before opening PR
-      const branchName = `fix/${incident.id.toLowerCase()}`;
+      const branchName = `fix/${incident.id.toLowerCase()}-${Date.now().toString(36).slice(-4)}`;
       const regressionTestContent =
         fix.surgicalPatch?.regressionTestContent || diag.regressionTestSnippet;
       const proposedDiff = this.buildProposedUnifiedDiff(

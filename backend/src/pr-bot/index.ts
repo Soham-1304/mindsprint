@@ -449,21 +449,40 @@ export class GitHubPrBot {
       );
     }
 
-    const pr = await this.githubJson<{ html_url: string; number: number }>(
-      owner,
-      repo,
-      token,
-      '/pulls',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          title,
-          body: fullBody,
-          head: branchName,
-          base: defaultBranch,
-        }),
+    let pr: { html_url: string; number: number };
+    try {
+      pr = await this.githubJson<{ html_url: string; number: number }>(
+        owner,
+        repo,
+        token,
+        '/pulls',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            title,
+            body: fullBody,
+            head: branchName,
+            base: defaultBranch,
+          }),
+        }
+      );
+    } catch (err: any) {
+      if (String(err?.message || '').includes('422')) {
+        const existing = await this.githubJson<Array<{ html_url: string; number: number }>>(
+          owner,
+          repo,
+          token,
+          `/pulls?head=${encodeURIComponent(`${owner}:${branchName}`)}&state=open`
+        );
+        if (existing.length > 0) {
+          pr = existing[0];
+        } else {
+          throw err;
+        }
+      } else {
+        throw err;
       }
-    );
+    }
 
     console.log(`[PRBot] Opened Fix PR #${pr.number}: ${pr.html_url}`);
     return {
