@@ -407,7 +407,7 @@ export function ArchitecturePage({
                     <div className="font-mono text-[11px] text-[#78716C]">
                       Latest scrubbed stack trace
                     </div>
-                    <pre className="overflow-x-auto rounded-lg border border-[#EAE2D9] bg-[#FAF8F5] p-3 font-mono text-[11.5px] text-[#991B1B]">
+                    <pre className="whitespace-pre-wrap break-words rounded-lg border border-[#EAE2D9] bg-[#FAF8F5] p-3 font-mono text-[11.5px] leading-relaxed text-[#991B1B]">
                       {`${selectedIncidents[0].topFrame.error}\n  at ${selectedIncidents[0].topFrame.function} (${selectedIncidents[0].topFrame.file}:${selectedIncidents[0].topFrame.line})`}
                     </pre>
                   </div>
