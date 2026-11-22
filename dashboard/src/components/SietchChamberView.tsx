@@ -74,7 +74,7 @@ export function SietchChamberView({ scans, onTriggerBranchScan }: SietchChamberV
     return (
       <div className="panel">
         <div className="panel-body">
-          No Sietch PR scans recorded yet. Trigger a live detonation on PulseShop&apos;s `bad-package` or `low-memory` branch.
+          No pre-merge security scans recorded yet. Trigger a live scan on PulseShop&apos;s `bad-package` or `low-memory` branch.
         </div>
       </div>
     );

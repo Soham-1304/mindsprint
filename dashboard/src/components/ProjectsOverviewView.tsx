@@ -24,6 +24,7 @@ import type {
   LinkedProject,
   ScorecardMetrics,
 } from "../types";
+import { NumberTicker, SpotlightCard } from "./craft/CraftPrimitives";
 
 interface ProjectsOverviewViewProps {
   apiBase: string;
@@ -205,7 +206,11 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
                     <span>Mean Diagnosis</span>
                   </span>
                   <span className="usage-row-value">
-                    {formatTtd(scorecard.meanTtdMs)}{" "}
+                    <NumberTicker
+                      value={Number((scorecard.meanTtdMs / 1000).toFixed(1))}
+                      decimals={1}
+                      suffix="s"
+                    />{" "}
                     <span style={{ color: "var(--safe)", fontWeight: 500 }}>({speedup}x)</span>
                   </span>
                 </div>
@@ -223,14 +228,18 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
                     <GitBranch size={14} color="var(--ink-muted)" aria-hidden="true" />
                     <span>Fix PRs Opened</span>
                   </span>
-                  <span className="usage-row-value">{scorecard.fixPrsOpened}</span>
+                  <span className="usage-row-value">
+                    <NumberTicker value={scorecard.fixPrsOpened} />
+                  </span>
                 </div>
                 <div className="usage-row">
                   <span className="usage-row-label">
                     <ShieldCheck size={14} color="var(--ink-muted)" aria-hidden="true" />
-                    <span>Sietch PRs Blocked</span>
+                    <span>Pre-Merge PRs Blocked</span>
                   </span>
-                  <span className="usage-row-value">{scorecard.sietchPackagesBlocked}</span>
+                  <span className="usage-row-value">
+                    <NumberTicker value={scorecard.sietchPackagesBlocked} />
+                  </span>
                 </div>
                 <div className="usage-row">
                   <span className="usage-row-label">
@@ -258,7 +267,7 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
                         { label: "/metrics", ok: caps.prometheusMetrics },
                         { label: "/api/telemetry", ok: caps.jsonTelemetry },
                         { label: "Push Logs (6h)", ok: caps.pushLogsActive },
-                        { label: "Sietch Shield", ok: caps.sietchGate },
+                        { label: "Pre-Merge Gate", ok: caps.sietchGate },
                       ].map((s) => (
                         <div key={s.label} className={`signal-item mono ${s.ok ? "ok" : ""}`}>
                           <span className={`dot ${s.ok ? "dot-healthy" : "dot-degraded"}`} aria-hidden="true" />
@@ -397,7 +406,7 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
                   <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "var(--ink-secondary)" }}>
                     {githubApp?.installations && githubApp.installations.length > 0
                       ? `Connected via Patch-Up SRE (${githubApp.installations[0].accountLogin})`
-                      : "Select a GitHub repository to enable PR-only fixes & Sietch checks."}
+                      : "Select a GitHub repository to enable PR-only fixes & pre-merge security checks."}
                   </p>
                 </div>
               </div>
@@ -416,7 +425,7 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
                 : "Push-only telemetry";
 
               return (
-                <article
+                <SpotlightCard
                   key={proj.id}
                   className={`project-card ${isSelected ? "active" : ""}`}
                 >
@@ -510,7 +519,7 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
                       </span>
                     )}
                   </div>
-                </article>
+                </SpotlightCard>
               );
             })}
           </div>
