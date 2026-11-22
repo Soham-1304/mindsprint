@@ -61,12 +61,15 @@ export function NumberTicker({
     <span
       ref={ref}
       className={cn(
-        "inline-block tracking-wider text-black tabular-nums dark:text-white",
+        "inline-block tracking-tight text-[#181614] tabular-nums",
         className
       )}
       {...props}
     >
-      {startValue}
+      {Intl.NumberFormat("en-US", {
+        minimumFractionDigits: decimalPlaces,
+        maximumFractionDigits: decimalPlaces,
+      }).format(value)}
     </span>
   )
 }

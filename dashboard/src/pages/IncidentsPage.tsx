@@ -155,8 +155,8 @@ export function IncidentsPage({
                     <TableCell className="font-mono text-[12px] font-medium text-[#181614]">
                       {inc.id}
                     </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-[#181614]">{inc.title}</div>
+                    <TableCell className="max-w-[360px] whitespace-normal">
+                      <div className="font-medium text-[#181614] line-clamp-1">{inc.title}</div>
                       <div className="mt-0.5 line-clamp-1 text-[12px] text-[#665E56]">
                         {inc.diagnosisSummary}
                       </div>

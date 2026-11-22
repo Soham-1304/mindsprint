@@ -1,4 +1,4 @@
-import { ChevronDown, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AppRoute, ProjectTab } from "@/lib/router";
 import { cn } from "@/lib/utils";
@@ -60,31 +60,24 @@ export function AppShell({
                 <span className="text-[#D4C9BC] select-none" aria-hidden="true">
                   /
                 </span>
-                <div className="relative inline-flex items-center">
-                  <select
-                    aria-label="Switch project"
-                    value={activeProject.id}
-                    onChange={(e) =>
-                      onNavigate({
-                        kind: "project",
-                        projectId: e.target.value,
-                        tab: route.tab,
-                      })
-                    }
-                    className="h-7 appearance-none rounded-md border border-[#E5DCD2] bg-white pl-2.5 pr-7 font-mono text-[12.5px] font-medium text-[#181614] transition-colors hover:border-[#CFC4B8] focus:outline-none focus:ring-2 focus:ring-[#FF5500]/30 cursor-pointer max-w-[230px] truncate"
-                  >
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.fullName}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={13}
-                    className="pointer-events-none absolute right-2 text-[#78716C]"
-                    aria-hidden="true"
-                  />
-                </div>
+                <select
+                  aria-label="Switch project"
+                  value={activeProject.id}
+                  onChange={(e) =>
+                    onNavigate({
+                      kind: "project",
+                      projectId: e.target.value,
+                      tab: route.tab,
+                    })
+                  }
+                  className="h-7 rounded-md border border-[#E5DCD2] bg-white px-2.5 font-mono text-[12.5px] font-medium text-[#181614] transition-colors hover:border-[#CFC4B8] focus:outline-none focus:ring-2 focus:ring-[#FF5500]/30 cursor-pointer max-w-[230px] truncate"
+                >
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.fullName}
+                    </option>
+                  ))}
+                </select>
               </>
             ) : (
               <>

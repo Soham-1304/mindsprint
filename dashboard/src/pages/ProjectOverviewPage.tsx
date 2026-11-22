@@ -637,6 +637,7 @@ export function ProjectOverviewPage({
             <BarChart
               data={diagnosisBarData}
               xDataKey="name"
+              barWidth={36}
               aspectRatio="16 / 9"
               margin={{ top: 12, right: 12, bottom: 26, left: 24 }}
             >
