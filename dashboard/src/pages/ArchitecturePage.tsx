@@ -35,14 +35,6 @@ interface ArchitecturePageProps {
 
 type LayerInspectorTab = "logs" | "incidents" | "health";
 
-const SLOT_ORDER: TowerNodeId[] = [
-  "ai-engine",
-  "backend-service",
-  "gateway-service",
-  "frontend-service",
-  "git-sep",
-];
-
 function SlotDomainIcon({ slotId, className }: { slotId: TowerNodeId; className?: string }) {
   switch (slotId) {
     case "ai-engine":
@@ -186,7 +178,6 @@ export function ArchitecturePage({
   const selected = selectedSlot ? slots[selectedSlot] : null;
   const hovered = hoveredSlot ? slots[hoveredSlot] : null;
 
-  // Fetch real per-layer logs from backend whenever a layer is selected
   useEffect(() => {
     if (!selected) {
       setLayerLogs([]);
@@ -228,7 +219,7 @@ export function ArchitecturePage({
 
   return (
     <div className="relative h-[calc(100dvh-89px)] min-h-[600px] w-full overflow-hidden bg-[#FAF8F5]">
-      {/* Full-Viewport 3D Chip Tower */}
+      {/* Full, Open 3D Chip Tower Stage (zero side rails) */}
       <div className="absolute inset-0">
         <ArchitectureScene
           hoveredServiceId={hoveredSlot}
@@ -243,90 +234,47 @@ export function ArchitecturePage({
         />
       </div>
 
-      {/* Left Domain Layer Rail (with real domain logos — clicking extracts that chip to the left!) */}
-      <nav
-        aria-label="Architecture layers"
-        className="absolute left-5 top-5 z-10 flex w-[238px] flex-col gap-1.5 rounded-xl border border-[#EAE2D9] bg-white/92 p-2 shadow-sm backdrop-blur-md"
-      >
-        {SLOT_ORDER.map((slotId) => {
-          const slot = slots[slotId];
-          const isSelected = selectedSlot === slotId;
-          const isHovered = hoveredSlot === slotId;
-          return (
-            <button
-              key={slotId}
-              type="button"
-              onMouseEnter={() => setHoveredSlot(slotId)}
-              onMouseLeave={() => setHoveredSlot(null)}
-              onClick={() => {
-                setSelectedSlot(isSelected ? null : slotId);
-                setInspectorTab("logs");
-              }}
-              className={cn(
-                "flex w-full items-center justify-between gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors cursor-pointer",
-                isSelected
-                  ? "bg-[#FFF5EE] text-[#181614] ring-1 ring-[#FBD3B7]"
-                  : isHovered
-                    ? "bg-[#FAF8F5] text-[#181614]"
-                    : "text-[#5C5650] hover:bg-[#FAF8F5]",
-              )}
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border",
-                    isSelected
-                      ? "border-[#FBD3B7] bg-white text-[#FF5500]"
-                      : "border-[#EFE8E0] bg-[#FAF8F5] text-[#5C5650]",
-                  )}
-                >
-                  <SlotDomainIcon slotId={slotId} />
-                </span>
-                <div className="min-w-0">
-                  <div className="truncate font-mono text-[12px] font-semibold text-[#181614]">
-                    {slot.label}
-                  </div>
-                  <div className="truncate text-[11px] text-[#78716C]">{slot.health}</div>
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  slot.health === "CRITICAL"
-                    ? "bg-[#DC2626]"
-                    : slot.health === "DEGRADED"
-                      ? "bg-[#D97706]"
-                      : "bg-[#15803D]",
-                )}
-              />
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Hover Tooltip (when no slab is extracted) */}
-      {!selected && hovered && (
-        <div className="pointer-events-none absolute right-6 top-5 z-10 w-64 rounded-xl border border-[#EAE2D9] bg-white/95 p-3.5 shadow-sm backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <SlotDomainIcon slotId={hovered.slotId} className="text-[#FF5500]" />
-            <span className="truncate font-mono text-[12.5px] font-semibold text-[#181614]">
-              {hovered.label}
-            </span>
-          </div>
-          <p className="mt-1 text-[12px] text-[#665E56]">{hovered.role}</p>
-          <div className="mt-2 font-mono text-[11px] font-medium text-[#B83B00]">
-            Click to extract layer &amp; view logs →
-          </div>
+      {/* Subtle Bottom Hint when idle */}
+      {!selected && (
+        <div className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 z-10 rounded-full border border-[#EAE2D9] bg-white/90 px-3.5 py-1.5 font-mono text-[11.5px] text-[#665E56] shadow-xs">
+          Click any chip in the stack to inspect live logs &amp; health
         </div>
       )}
 
-      {/* Right Per-Layer Popup Sheet (slides in while the selected chip extracts to the left) */}
+      {/* Compact Hover Tooltip */}
+      {!selected && hovered && (
+        <div className="pointer-events-none absolute right-7 top-6 z-10 w-64 rounded-xl border border-[#EAE2D9] bg-white/95 p-3.5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <SlotDomainIcon slotId={hovered.slotId} className="shrink-0 text-[#FF5500]" />
+              <span className="truncate font-mono text-[12.5px] font-semibold text-[#181614]">
+                {hovered.label}
+              </span>
+            </div>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold",
+                hovered.health === "CRITICAL"
+                  ? "bg-[#FEF2F2] text-[#B91C1C]"
+                  : hovered.health === "DEGRADED"
+                    ? "bg-[#FFFBEB] text-[#B45309]"
+                    : "bg-[#F0FDF4] text-[#15803D]",
+              )}
+            >
+              {hovered.health}
+            </span>
+          </div>
+          <p className="mt-1 truncate text-[12px] text-[#665E56]">{hovered.role}</p>
+        </div>
+      )}
+
+      {/* Floating Compact Popup Card on the Right (chip extracts cleanly to the Left!) */}
       {selected && (
         <aside
-          aria-label={`${selected.label} layer inspector`}
-          className="absolute inset-y-5 right-5 z-20 flex w-[min(450px,calc(100%-32px))] flex-col overflow-hidden rounded-2xl border border-[#EAE2D9] bg-white shadow-[0_20px_50px_rgba(24,22,20,0.12)]"
+          aria-label={`${selected.label} details`}
+          className="absolute right-8 top-1/2 z-20 flex w-[min(430px,calc(100%-32px))] max-h-[76%] -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-[#E5DCD2] bg-white shadow-[0_24px_56px_rgba(24,22,20,0.12)]"
         >
-          {/* Sheet Header */}
+          {/* Popup Header */}
           <div className="flex items-start justify-between gap-3 border-b border-[#EFE8E0] px-5 py-4">
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#FBD3B7] bg-[#FFF5EE] text-[#FF5500]">
@@ -357,14 +305,14 @@ export function ArchitecturePage({
             <button
               type="button"
               onClick={() => setSelectedSlot(null)}
-              aria-label="Close layer inspector"
+              aria-label="Close layer popup"
               className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#78716C] hover:bg-[#F4EFE9] cursor-pointer"
             >
               <X size={15} />
             </button>
           </div>
 
-          {/* 3 Clean Per-Layer Tabs */}
+          {/* 3 Compact Tabs */}
           <div className="grid grid-cols-3 gap-1 border-b border-[#EFE8E0] bg-[#FAF8F5] px-4 py-2">
             {(
               [
@@ -390,13 +338,13 @@ export function ArchitecturePage({
             ))}
           </div>
 
-          {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto p-4 text-[12.5px]">
+          {/* Auto-sized Scrollable Body */}
+          <div className="overflow-y-auto p-4 text-[12.5px]">
             {inspectorTab === "logs" && (
               <div className="space-y-3">
                 {selected.serviceKey === "repo" ? (
                   scans.length > 0 ? (
-                    scans.slice(0, 5).map((scan) => (
+                    scans.slice(0, 4).map((scan) => (
                       <div
                         key={scan.id}
                         className="rounded-lg border border-[#EAE2D9] bg-[#FAF8F5] p-3"
@@ -405,9 +353,7 @@ export function ArchitecturePage({
                           <span className="font-semibold text-[#181614]">
                             {scan.branch} {scan.prNumber ? `· #${scan.prNumber}` : ""}
                           </span>
-                          <span
-                            className={scan.blocked ? "text-[#B91C1C]" : "text-[#15803D]"}
-                          >
+                          <span className={scan.blocked ? "text-[#B91C1C]" : "text-[#15803D]"}>
                             {scan.verdictKind}
                           </span>
                         </div>
@@ -424,8 +370,8 @@ export function ArchitecturePage({
                 ) : selected.serviceKey === "signals" ? (
                   <div className="space-y-2.5">
                     <p className="text-[#5C5650]">
-                      Zero raw logs are persisted at rest. Scrubbed 6h error bundles arrive only
-                      when a service faults and are purged from RAM immediately after PR creation.
+                      Zero raw logs stored at rest. Scrubbed error bundles arrive only on break and
+                      purge from RAM after PR creation.
                     </p>
                     <button
                       type="button"
@@ -437,12 +383,12 @@ export function ArchitecturePage({
                     </button>
                   </div>
                 ) : loadingLogs ? (
-                  <div className="py-6 text-center font-mono text-[12px] text-[#78716C]">
+                  <div className="py-5 text-center font-mono text-[12px] text-[#78716C]">
                     Loading live logs for {selected.label}...
                   </div>
                 ) : layerLogs.length > 0 ? (
                   <div className="divide-y divide-[#F0E9E1] overflow-hidden rounded-lg border border-[#EAE2D9] bg-[#FAF8F5] font-mono text-[11.5px]">
-                    {layerLogs.map((line, idx) => (
+                    {layerLogs.slice(0, 12).map((line, idx) => (
                       <div
                         key={idx}
                         className={cn(
@@ -467,8 +413,7 @@ export function ArchitecturePage({
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] p-4 text-[#665E56]">
-                    No recent error logs in volatile memory for {selected.label}. Service is
-                    nominal.
+                    No recent error logs in volatile memory for {selected.label}.
                   </div>
                 )}
               </div>

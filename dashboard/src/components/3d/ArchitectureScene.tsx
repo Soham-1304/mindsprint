@@ -26,8 +26,9 @@ const LAYER_BASE_Y: Record<TowerNodeId, number> = {
   "ai-engine": 1.96,
 };
 
-const DEDICATED_TARGET_OFFSET = new THREE.Vector3(-1.95, 0, 1.95);
-const DEDICATED_CAMERA_OFFSET = new THREE.Vector3(5.5, 3.4, 5.5);
+// Shifting target along screen-right (+x, -z) frames the extracted chip cleanly in the LEFT half of the viewport
+const DEDICATED_TARGET_OFFSET = new THREE.Vector3(1.55, 0, -1.55);
+const DEDICATED_CAMERA_OFFSET = new THREE.Vector3(5.8, 3.5, 5.8);
 
 const CameraController: React.FC<{
   selectedServiceId: TowerNodeId | null;
