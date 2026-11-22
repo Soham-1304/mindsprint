@@ -20,6 +20,7 @@ interface AppShellProps {
 
 const PROJECT_TABS: Array<{ id: ProjectTab; label: string }> = [
   { id: "overview", label: "Overview" },
+  { id: "architecture", label: "Architecture" },
   { id: "incidents", label: "Incidents" },
   { id: "security", label: "Security gate" },
   { id: "signals", label: "Signals & setup" },
@@ -39,10 +40,10 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const inProject = route.kind === "project" && activeProject;
+  const isFlushCanvas = route.kind === "project" && route.tab === "architecture";
 
   return (
     <div className="min-h-dvh flex flex-col bg-[#FAF8F5] text-[#181614]">
-      {/* Single 48px Top Bar — No + Import button here */}
       <header className="sticky top-0 z-40 border-b border-[#EAE2D9] bg-[#FAF8F5]/90 backdrop-blur-md">
         <div className="mx-auto flex h-12 max-w-[1280px] items-center justify-between gap-4 px-5">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -90,6 +91,14 @@ export function AppShell({
           </div>
 
           <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => onNavigate({ kind: "landing" })}
+              className="hidden sm:inline-flex h-7 items-center rounded-md px-2 text-[12px] font-medium text-[#665E56] hover:text-[#181614] cursor-pointer"
+            >
+              Home
+            </button>
+
             <span
               className="inline-flex h-7 items-center gap-1.5 rounded-full border border-[#EAE2D9] bg-white px-2.5 font-mono text-[11.5px] font-medium text-[#5C5650]"
               title={isLive ? "WebSocket stream live" : "Reconnecting to control plane"}
@@ -118,7 +127,6 @@ export function AppShell({
           </div>
         </div>
 
-        {/* Vercel-style Project Tabs Bar (rendered only inside a project) */}
         {inProject && (
           <nav
             aria-label="Project sections"
@@ -166,7 +174,15 @@ export function AppShell({
         )}
       </header>
 
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 py-7">{children}</main>
+      <main
+        className={
+          isFlushCanvas
+            ? "flex-1 w-full"
+            : "mx-auto w-full max-w-[1280px] flex-1 px-5 py-7"
+        }
+      >
+        {children}
+      </main>
     </div>
   );
 }

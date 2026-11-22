@@ -23,6 +23,9 @@ export function SignalsSetupPage({
 
   const caps = project.capabilities;
   const webhookBase = apiBase || "https://patch-up-backend.onrender.com";
+  const coveragePct = Math.round(
+    (caps.activeSignalsCount / Math.max(caps.totalSignalsCount, 1)) * 100,
+  );
 
   const snippets: Record<SnippetTab, { label: string; code: string }> = {
     node: {
@@ -94,20 +97,20 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
       what: `Probes ${project.deployedUrl ? `${project.deployedUrl.replace(/\/+$/, "")}${project.healthEndpoint || "/api/health"}` : "/api/health"} for HTTP 200.`,
       fix: caps.healthEndpoint
         ? "Returning HTTP 200."
-        : "Endpoint returned non-200 (e.g. 503 degraded if an upstream URL is unreachable or protected). Check upstream env vars or Settings.",
+        : "Endpoint returned non-200. Check upstream URLs or Settings.",
     },
     {
       name: "Prometheus /metrics",
       ok: caps.prometheusMetrics,
-      what: `Reads ${project.metricsEndpoint || "/metrics"} for error rate and latency histograms.`,
+      what: `Scrapes ${project.metricsEndpoint || "/metrics"} for error rate and latency histograms.`,
       fix: caps.prometheusMetrics
         ? "Metrics scrape active."
-        : "Expose a Prometheus /metrics endpoint or set a custom Prometheus URL in Settings.",
+        : "Expose /metrics or set a custom Prometheus URL in Settings.",
     },
     {
       name: "JSON /api/telemetry",
       ok: caps.jsonTelemetry,
-      what: `Reads ${project.telemetryEndpoint || "/api/telemetry"} for structured p95 latency and 5xx stats.`,
+      what: `Reads ${project.telemetryEndpoint || "/api/telemetry"} for p95 latency and 5xx stats.`,
       fix: caps.jsonTelemetry
         ? "Structured JSON telemetry active."
         : "Expose a JSON /api/telemetry route returning errorRate5xx and p95LatencyMs.",
@@ -115,10 +118,10 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
     {
       name: "Push logs (6h window)",
       ok: caps.pushLogsActive,
-      what: "App pushes scrubbed logs to Patch-Up only when an error or 5xx spike triggers. Zero logs stored at rest.",
+      what: "App pushes scrubbed logs only when a fault triggers. Zero logs stored at rest.",
       fix: caps.pushLogsActive
         ? "Push bundle received; zero-retention pipeline active."
-        : "No push bundle received since last backend restart. Wire the snippet below so crashes trigger diagnosis immediately.",
+        : "No push bundle received yet. Wire the webhook snippet below.",
     },
     {
       name: "Pre-merge security gate",
@@ -130,65 +133,85 @@ if (process.env.PATCHUP_WEBHOOK_URL) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[13px] text-[#5C5650]">
-            {caps.activeSignalsCount} of {caps.totalSignalsCount} signals connected · last checked{" "}
-            <span className="font-mono text-[12px] text-[#78716C]">
-              {new Date(caps.checkedAt).toLocaleTimeString()}
-            </span>
-          </p>
+      {/* Coverage Header Card */}
+      <div className="rounded-xl border border-[#EAE2D9] bg-white p-5 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <span className="font-mono text-[15px] font-bold text-[#181614] tabular-nums">
+                {caps.activeSignalsCount} / {caps.totalSignalsCount}
+              </span>
+              <span className="text-[13.5px] font-medium text-[#5C5650]">signals connected</span>
+              <span className="rounded-full bg-[#F0FDF4] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#15803D]">
+                {caps.accuracyLevel}
+              </span>
+            </div>
+            <p className="mt-1 font-mono text-[11.5px] text-[#78716C]">
+              Last probed {new Date(caps.checkedAt).toLocaleTimeString()} · auto-probes every 5m
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={rescanning}
+            onClick={() => void handleRescan()}
+            className="h-8 border-[#E5DCD2] bg-white text-[12.5px] cursor-pointer"
+          >
+            <RefreshCw size={13} className={rescanning ? "animate-spin" : ""} />
+            <span>{rescanning ? "Checking endpoints..." : "Re-check now"}</span>
+          </Button>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          disabled={rescanning}
-          onClick={() => void handleRescan()}
-          className="h-8 border-[#E5DCD2] bg-white text-[12.5px] cursor-pointer"
-        >
-          <RefreshCw size={13} className={rescanning ? "animate-spin" : ""} />
-          <span>{rescanning ? "Checking endpoints..." : "Re-check now"}</span>
-        </Button>
+        <div className="mt-3.5 h-1.5 w-full overflow-hidden rounded-full bg-[#F0E9E1]">
+          <div
+            className="h-full rounded-full bg-[#15803D] transition-all duration-300"
+            style={{ width: `${coveragePct}%` }}
+          />
+        </div>
       </div>
 
-      {/* 6 Signal Rows */}
-      <div className="divide-y divide-[#F0E9E1] overflow-hidden rounded-xl border border-[#EAE2D9] bg-white shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
+      {/* 2-Column Signal Cards Grid */}
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
         {signalRows.map((row) => (
           <div
             key={row.name}
-            className="grid grid-cols-1 gap-2 px-5 py-4 md:grid-cols-[200px_1fr_auto] md:items-center"
+            className="flex flex-col justify-between rounded-xl border border-[#EAE2D9] bg-white p-4 shadow-[0_1px_2px_rgba(24,22,20,0.04)]"
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "h-2 w-2 shrink-0 rounded-full",
+                    row.ok ? "bg-[#15803D]" : "bg-[#DC2626]",
+                  )}
+                />
+                <span className="text-[13.5px] font-semibold text-[#181614]">{row.name}</span>
+              </div>
               <span
                 className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  row.ok ? "bg-[#15803D]" : "bg-[#DC2626]",
+                  "rounded-full px-2 py-0.5 font-mono text-[10.5px] font-medium",
+                  row.ok ? "bg-[#F0FDF4] text-[#15803D]" : "bg-[#FEF2F2] text-[#B91C1C]",
                 )}
-              />
-              <span className="text-[13.5px] font-semibold text-[#181614]">{row.name}</span>
+              >
+                {row.ok ? "Connected" : "Needs setup"}
+              </span>
             </div>
 
-            <div className="space-y-0.5 text-[12.5px]">
-              <div className="text-[#5C5650]">{row.what}</div>
-              <div className={cn("text-[12px]", row.ok ? "text-[#15803D]" : "text-[#B45309]")}>
-                {row.fix}
-              </div>
-            </div>
-
-            <span
+            <p className="mt-2 text-[12.5px] text-[#5C5650]">{row.what}</p>
+            <p
               className={cn(
-                "w-fit rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium",
-                row.ok ? "bg-[#F0FDF4] text-[#15803D]" : "bg-[#FEF2F2] text-[#B91C1C]",
+                "mt-2 border-t border-[#F0E9E1] pt-2 text-[12px]",
+                row.ok ? "text-[#15803D]" : "text-[#B45309]",
               )}
             >
-              {row.ok ? "Connected" : "Needs attention"}
-            </span>
+              {row.fix}
+            </p>
           </div>
         ))}
       </div>
 
-      {/* Push-on-Break Integration Snippets */}
+      {/* Push-on-Break Webhook Setup */}
       <section className="rounded-xl border border-[#EAE2D9] bg-white p-5 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

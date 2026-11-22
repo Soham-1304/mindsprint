@@ -1,4 +1,4 @@
-import { ChevronDown, Play, ShieldAlert, ShieldCheck, X } from "lucide-react";
+import { ChevronDown, KeyRound, Play, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { useState } from "react";
 import {
   Table,
@@ -36,11 +36,17 @@ function summarizeEvent(evt: SietchEvent): string {
 }
 
 export function SecurityGatePage({ scans, onTriggerBranchScan }: SecurityGatePageProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(scans[0]?.id ?? null);
   const [running, setRunning] = useState<string | null>(null);
 
   const active = selectedId ? scans.find((s) => s.id === selectedId) ?? null : null;
   const detonation = active?.layer1Detonations[0] ?? null;
+
+  const blockedCount = scans.filter((s) => s.blocked).length;
+  const avgDuration =
+    scans.length > 0
+      ? Math.round(scans.reduce((acc, s) => acc + s.durationMs, 0) / scans.length)
+      : 0;
 
   async function runScan(branch: "bad-package" | "low-memory") {
     setRunning(branch);
@@ -52,14 +58,30 @@ export function SecurityGatePage({ scans, onTriggerBranchScan }: SecurityGatePag
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[13px] text-[#665E56]">
-          Every pull request and push to main is checked for malicious packages, typosquats, leaked
-          secrets, and unsafe container limits before merge.
-        </p>
+    <div className="space-y-5">
+      {/* Top Summary Strip + Run Test Scan Menu */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="rounded-lg border border-[#EAE2D9] bg-white px-3.5 py-2">
+            <span className="text-[11.5px] text-[#78716C]">Scans</span>
+            <span className="ml-2 font-mono text-[13.5px] font-semibold text-[#181614] tabular-nums">
+              {scans.length}
+            </span>
+          </div>
+          <div className="rounded-lg border border-[#EAE2D9] bg-white px-3.5 py-2">
+            <span className="text-[11.5px] text-[#78716C]">Blocked</span>
+            <span className="ml-2 font-mono text-[13.5px] font-semibold text-[#B91C1C] tabular-nums">
+              {blockedCount}
+            </span>
+          </div>
+          <div className="rounded-lg border border-[#EAE2D9] bg-white px-3.5 py-2">
+            <span className="text-[11.5px] text-[#78716C]">Avg scan</span>
+            <span className="ml-2 font-mono text-[13.5px] font-semibold text-[#181614] tabular-nums">
+              {avgDuration}ms
+            </span>
+          </div>
+        </div>
 
-        {/* Tucked Test Scan Menu */}
         <details className="relative shrink-0">
           <summary className="inline-flex h-8 list-none items-center gap-1.5 rounded-md border border-[#E5DCD2] bg-white px-3 text-[12.5px] font-medium text-[#181614] hover:bg-[#F4EFE9] cursor-pointer">
             <Play size={12} className="text-[#FF5500]" />
@@ -99,9 +121,9 @@ export function SecurityGatePage({ scans, onTriggerBranchScan }: SecurityGatePag
           <Table>
             <TableHeader>
               <TableRow className="bg-[#FAF8F5] hover:bg-[#FAF8F5]">
-                <TableHead className="w-[120px] text-[12px] text-[#665E56]">Verdict</TableHead>
-                <TableHead className="text-[12px] text-[#665E56]">Branch / PR</TableHead>
-                <TableHead className="text-[12px] text-[#665E56]">Summary</TableHead>
+                <TableHead className="w-[125px] text-[12px] text-[#665E56]">Verdict</TableHead>
+                <TableHead className="w-[170px] text-[12px] text-[#665E56]">Branch / PR</TableHead>
+                <TableHead className="text-[12px] text-[#665E56]">Finding</TableHead>
                 <TableHead className="w-[160px] text-[12px] text-[#665E56]">Layers</TableHead>
                 <TableHead className="w-[90px] text-right text-[12px] text-[#665E56]">
                   Duration
@@ -147,7 +169,7 @@ export function SecurityGatePage({ scans, onTriggerBranchScan }: SecurityGatePag
                       {scan.branch}
                       {scan.prNumber ? ` · #${scan.prNumber}` : ""}
                     </TableCell>
-                    <TableCell className="text-[13px] text-[#5C5650]">
+                    <TableCell className="max-w-[380px] whitespace-normal text-[13px] text-[#5C5650]">
                       {scan.githubCheckRun.title}
                     </TableCell>
                     <TableCell className="font-mono text-[11.5px] text-[#665E56]">
@@ -164,7 +186,7 @@ export function SecurityGatePage({ scans, onTriggerBranchScan }: SecurityGatePag
         )}
       </div>
 
-      {/* Selected Scan Detail Drawer */}
+      {/* Selected Scan 3-Layer Breakdown */}
       {active && (
         <section className="rounded-xl border border-[#EAE2D9] bg-white p-5 shadow-xs space-y-4">
           <div className="flex items-start justify-between gap-4 border-b border-[#F0E9E1] pb-3">
@@ -189,19 +211,30 @@ export function SecurityGatePage({ scans, onTriggerBranchScan }: SecurityGatePag
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {/* Layer 1 */}
             <div className="rounded-lg border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
-              <div className="text-[12px] font-semibold text-[#181614]">
-                1. Package sandbox
-              </div>
+              <div className="text-[12px] font-semibold text-[#181614]">1. Package sandbox</div>
               {detonation ? (
-                <div className="mt-1.5 space-y-1 text-[12px] text-[#5C5650]">
+                <div className="mt-1.5 space-y-2 text-[12px] text-[#5C5650]">
                   <div className="font-mono text-[11.5px] text-[#181614]">
                     {detonation.packageName}@{detonation.packageVersion}
                   </div>
-                  <div>
-                    {detonation.findings.length} finding(s) · {detonation.honeytokensPlanted}{" "}
-                    honeytokens planted
+                  <div className="flex flex-wrap gap-1.5">
+                    {detonation.tripwires.slice(0, 4).map((tw) => (
+                      <span
+                        key={tw.id}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10.5px]",
+                          tw.status === "EXFILTRATED" || tw.status === "TAMPERED"
+                            ? "bg-[#FEF2F2] text-[#B91C1C]"
+                            : tw.status === "READ"
+                              ? "bg-[#FFFBEB] text-[#B45309]"
+                              : "bg-white text-[#78716C] border border-[#EAE2D9]",
+                        )}
+                      >
+                        <KeyRound size={10} />
+                        {tw.label}
+                      </span>
+                    ))}
                   </div>
                 </div>
               ) : (
@@ -209,7 +242,6 @@ export function SecurityGatePage({ scans, onTriggerBranchScan }: SecurityGatePag
               )}
             </div>
 
-            {/* Layer 2 */}
             <div className="rounded-lg border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
               <div className="text-[12px] font-semibold text-[#181614]">
                 2. Typosquat &amp; fresh-pkg guard
@@ -221,7 +253,6 @@ export function SecurityGatePage({ scans, onTriggerBranchScan }: SecurityGatePag
               </p>
             </div>
 
-            {/* Layer 3 */}
             <div className="rounded-lg border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
               <div className="text-[12px] font-semibold text-[#181614]">
                 3. Secrets &amp; infra diff guard

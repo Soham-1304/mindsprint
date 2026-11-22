@@ -1,12 +1,22 @@
-export type ProjectTab = "overview" | "incidents" | "security" | "signals" | "settings";
+export type ProjectTab =
+  | "overview"
+  | "architecture"
+  | "incidents"
+  | "security"
+  | "signals"
+  | "settings";
 
 export type AppRoute =
+  | { kind: "landing" }
   | { kind: "projects" }
   | { kind: "project"; projectId: string; tab: ProjectTab; incidentId?: string };
 
 export function parseRoute(pathname: string): AppRoute {
   const clean = pathname.replace(/\/+$/, "") || "/";
-  if (clean === "/" || clean === "/projects") {
+  if (clean === "/") {
+    return { kind: "landing" };
+  }
+  if (clean === "/projects") {
     return { kind: "projects" };
   }
 
@@ -16,6 +26,9 @@ export function parseRoute(pathname: string): AppRoute {
     const section = parts[2];
     if (!section || section === "overview") {
       return { kind: "project", projectId, tab: "overview" };
+    }
+    if (section === "architecture") {
+      return { kind: "project", projectId, tab: "architecture" };
     }
     if (section === "incidents") {
       return {
@@ -31,10 +44,11 @@ export function parseRoute(pathname: string): AppRoute {
     return { kind: "project", projectId, tab: "overview" };
   }
 
-  return { kind: "projects" };
+  return { kind: "landing" };
 }
 
 export function buildPath(route: AppRoute): string {
+  if (route.kind === "landing") return "/";
   if (route.kind === "projects") return "/projects";
   const base = `/p/${encodeURIComponent(route.projectId)}`;
   if (route.tab === "overview") return base;

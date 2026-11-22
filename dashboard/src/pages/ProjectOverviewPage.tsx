@@ -1,16 +1,16 @@
 import {
   AlertTriangle,
   ArrowRight,
+  Boxes,
   CheckCircle2,
-  ExternalLink,
+  CreditCard,
   GitPullRequest,
+  Globe,
   Lock,
+  Package,
   ShieldCheck,
-  X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { ArchitectureScene } from "@/components/3d/ArchitectureScene";
-import type { LayerHealthState, RealTowerSlot, TowerNodeId } from "@/components/3d/types";
+import { useMemo } from "react";
 import { Area, AreaChart } from "@/components/charts/area-chart";
 import { Bar } from "@/components/charts/bar";
 import { BarChart } from "@/components/charts/bar-chart";
@@ -37,15 +37,10 @@ interface ProjectOverviewPageProps {
   scans: SietchPrScanResult[];
   probeHistory: ProjectProbePoint[];
   ephemeralTotalPurged: number;
+  onOpenArchitecture: () => void;
   onOpenIncident: (incidentId: string) => void;
   onOpenSignals: () => void;
   onOpenSecurity: () => void;
-}
-
-function mapServiceHealth(status?: string): LayerHealthState {
-  if (status === "DOWN") return "CRITICAL";
-  if (status === "DEGRADED") return "DEGRADED";
-  return "HEALTHY";
 }
 
 function formatRelative(iso?: string): string {
@@ -57,6 +52,12 @@ function formatRelative(iso?: string): string {
   return `${Math.floor(diffSec / 86400)}d ago`;
 }
 
+function ServiceIcon({ name }: { name: string }) {
+  if (name.includes("gateway")) return <Globe size={15} />;
+  if (name.includes("payment")) return <CreditCard size={15} />;
+  return <Package size={15} />;
+}
+
 export function ProjectOverviewPage({
   project,
   services,
@@ -64,124 +65,14 @@ export function ProjectOverviewPage({
   scans,
   probeHistory,
   ephemeralTotalPurged,
+  onOpenArchitecture,
   onOpenIncident,
   onOpenSignals,
   onOpenSecurity,
 }: ProjectOverviewPageProps) {
-  const [hoveredSlot, setHoveredSlot] = useState<TowerNodeId | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<TowerNodeId | null>(null);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && selectedSlot) setSelectedSlot(null);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selectedSlot]);
-
-  // Build real 3D tower slots exclusively from backend project + service data
-  const slots = useMemo<Record<TowerNodeId, RealTowerSlot>>(() => {
-    const findSvc = (key: string) =>
-      services.find((s) => s.name === key || s.id === `${key}-service`);
-
-    const gateway = findSvc("gateway");
-    const orders = findSvc("orders");
-    const payments = findSvc("payments");
-
-    const openInc = incidents.filter((i) => i.status !== "RESOLVED");
-    const hasOrdersInc = openInc.some((i) => i.service === "orders");
-    const hasGatewayInc = openInc.some((i) => i.service === "gateway");
-    const hasPaymentsInc = openInc.some((i) => i.service === "payments");
-    const latestScan = scans[0];
-    const signalsActive = project.capabilities.activeSignalsCount;
-
-    return {
-      "ai-engine": {
-        slotId: "ai-engine",
-        serviceKey: "repo",
-        label: project.fullName,
-        role: latestScan
-          ? `Security gate: ${latestScan.verdictKind} on ${latestScan.branch}`
-          : "GitHub repo & pre-merge security gate",
-        health: latestScan?.blocked ? "DEGRADED" : "HEALTHY",
-        version: project.defaultBranch,
-        lastCheckedAt: latestScan?.createdAt,
-      },
-      "backend-service": {
-        slotId: "backend-service",
-        serviceKey: "orders",
-        label: orders ? `${orders.name}-service` : "orders-service",
-        role: orders?.url || "Backend orders service",
-        url: orders?.url,
-        health: hasOrdersInc ? "CRITICAL" : mapServiceHealth(orders?.status),
-        errorRate5xx: orders?.errorRate5xx,
-        p95LatencyMs: orders?.p95LatencyMs,
-        version: orders?.version,
-        lastCheckedAt: orders?.lastCheckedAt,
-      },
-      "gateway-service": {
-        slotId: "gateway-service",
-        serviceKey: "gateway",
-        label: gateway ? `${gateway.name}-service` : "gateway-service",
-        role: gateway?.url || project.deployedUrl || "Edge API gateway",
-        url: gateway?.url || project.deployedUrl,
-        health: hasGatewayInc
-          ? "CRITICAL"
-          : !project.capabilities.healthEndpoint
-            ? "DEGRADED"
-            : mapServiceHealth(gateway?.status),
-        errorRate5xx: gateway?.errorRate5xx,
-        p95LatencyMs: gateway?.p95LatencyMs,
-        version: gateway?.version,
-        lastCheckedAt: gateway?.lastCheckedAt,
-      },
-      "frontend-service": {
-        slotId: "frontend-service",
-        serviceKey: "payments",
-        label: payments ? `${payments.name}-service` : "payments-service",
-        role: payments?.url || "Payments service",
-        url: payments?.url,
-        health: hasPaymentsInc ? "CRITICAL" : mapServiceHealth(payments?.status),
-        errorRate5xx: payments?.errorRate5xx,
-        p95LatencyMs: payments?.p95LatencyMs,
-        version: payments?.version,
-        lastCheckedAt: payments?.lastCheckedAt,
-      },
-      "git-sep": {
-        slotId: "git-sep",
-        serviceKey: "signals",
-        label: "Telemetry & push hooks",
-        role: `${signalsActive} of ${project.capabilities.totalSignalsCount} signals connected`,
-        health: signalsActive >= 4 ? "HEALTHY" : "DEGRADED",
-        lastCheckedAt: project.capabilities.checkedAt,
-      },
-    };
-  }, [project, services, incidents, scans]);
-
-  const layerHealth = useMemo<Record<string, LayerHealthState>>(() => {
-    return {
-      "ai-engine": slots["ai-engine"].health,
-      "layer-ai-engine": slots["ai-engine"].health,
-      "backend-service": slots["backend-service"].health,
-      "layer-backend": slots["backend-service"].health,
-      "gateway-service": slots["gateway-service"].health,
-      "layer-gateway": slots["gateway-service"].health,
-      "frontend-service": slots["frontend-service"].health,
-      "layer-frontend": slots["frontend-service"].health,
-      "git-sep": slots["git-sep"].health,
-      "layer-git-sep": slots["git-sep"].health,
-    };
-  }, [slots]);
-
   const openIncident = incidents.find((i) => i.status !== "RESOLVED");
   const latestIncident = incidents[0];
-  const hovered = hoveredSlot ? slots[hoveredSlot] : null;
-  const selected = selectedSlot ? slots[selectedSlot] : null;
-  const selectedIncidents = selected
-    ? incidents.filter((i) => i.service === selected.serviceKey)
-    : [];
 
-  // Bklit chart datasets (strictly from real backend data)
   const timeSeriesData = useMemo(
     () =>
       probeHistory.map((pt) => ({
@@ -201,11 +92,9 @@ export function ProjectOverviewPage({
     [incidents],
   );
 
-  // Recent activity feed from real incidents & scans
   const activity = useMemo(() => {
     const items: Array<{
       id: string;
-      kind: "incident" | "scan" | "purge";
       title: string;
       meta: string;
       at: string;
@@ -215,7 +104,6 @@ export function ProjectOverviewPage({
     for (const inc of incidents.slice(0, 4)) {
       items.push({
         id: `inc-${inc.id}`,
-        kind: "incident",
         title: `${inc.service}: ${inc.title}`,
         meta: inc.fixPrNumber ? `Fix PR #${inc.fixPrNumber} · ${inc.status}` : inc.status,
         at: inc.alarmRaisedAt,
@@ -224,7 +112,6 @@ export function ProjectOverviewPage({
       if (inc.purgeReceipt) {
         items.push({
           id: `purge-${inc.id}`,
-          kind: "purge",
           title: `RAM purged for ${inc.id} (0 B retained)`,
           meta: `${inc.purgeReceipt.itemsPurged} items · sha256:${inc.purgeReceipt.receiptHash.slice(0, 10)}`,
           at: inc.purgeReceipt.purgedAt,
@@ -236,7 +123,6 @@ export function ProjectOverviewPage({
     for (const scan of scans.slice(0, 3)) {
       items.push({
         id: `scan-${scan.id}`,
-        kind: "scan",
         title: `Security gate ${scan.verdictKind.toLowerCase()} on ${scan.branch}`,
         meta: scan.prNumber ? `PR #${scan.prNumber} · ${scan.durationMs}ms` : `${scan.durationMs}ms`,
         at: scan.createdAt,
@@ -251,183 +137,9 @@ export function ProjectOverviewPage({
 
   return (
     <div className="space-y-6">
-      {/* TOP HALF: Real-Services 3D Stack + Active Incident / Health Summary */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.45fr_0.85fr]">
-        {/* Left: 3D Service Stack Card */}
-        <div className="relative h-[430px] overflow-hidden rounded-xl border border-[#EAE2D9] bg-[#FAF8F5] shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
-          <ArchitectureScene
-            hoveredServiceId={hoveredSlot}
-            selectedServiceId={selectedSlot}
-            layerHealth={layerHealth}
-            onHoverService={setHoveredSlot}
-            onSelectService={(id) => {
-              setSelectedSlot(id);
-              setHoveredSlot(null);
-            }}
-          />
-
-          {/* Compact Hover Tooltip (Real Data Only) */}
-          {!selected && hovered && (
-            <div className="pointer-events-none absolute right-4 top-4 z-10 w-60 rounded-lg border border-[#EAE2D9] bg-white/95 p-3 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-mono text-[12.5px] font-semibold text-[#181614]">
-                  {hovered.label}
-                </span>
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 font-mono text-[10.5px] font-medium",
-                    hovered.health === "CRITICAL"
-                      ? "bg-[#FEF2F2] text-[#B91C1C]"
-                      : hovered.health === "DEGRADED"
-                        ? "bg-[#FFFBEB] text-[#B45309]"
-                        : "bg-[#F0FDF4] text-[#15803D]",
-                  )}
-                >
-                  {hovered.health}
-                </span>
-              </div>
-              <p className="mt-1 truncate text-[12px] text-[#665E56]">{hovered.role}</p>
-              {typeof hovered.p95LatencyMs === "number" && hovered.p95LatencyMs > 0 && (
-                <p className="mt-1 font-mono text-[11px] text-[#78716C] tabular-nums">
-                  p95 {hovered.p95LatencyMs}ms · 5xx {(hovered.errorRate5xx ?? 0) * 100}%
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Subtle bottom-left legend hint */}
-          {!selected && (
-            <div className="pointer-events-none absolute bottom-3 left-4 z-10 font-mono text-[11px] text-[#78716C]">
-              Click any service slab to inspect live health
-            </div>
-          )}
-
-          {/* Slide-in Real Data Service Sheet */}
-          {selected && (
-            <aside
-              aria-label={`${selected.label} details`}
-              className="absolute inset-y-3 right-3 z-20 flex w-[min(360px,calc(100%-24px))] flex-col overflow-hidden rounded-xl border border-[#EAE2D9] bg-white shadow-lg"
-            >
-              <div className="flex items-center justify-between border-b border-[#EFE8E0] px-4 py-3">
-                <div className="min-w-0">
-                  <h2 className="truncate font-mono text-[13.5px] font-semibold text-[#181614]">
-                    {selected.label}
-                  </h2>
-                  <p className="truncate text-[12px] text-[#665E56]">{selected.role}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSlot(null)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#78716C] hover:bg-[#F4EFE9] hover:text-[#181614] cursor-pointer"
-                  aria-label="Close inspector"
-                >
-                  <X size={15} />
-                </button>
-              </div>
-
-              <div className="flex-1 space-y-3.5 overflow-y-auto p-4 text-[12.5px]">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-[#F0E9E1] bg-[#FAF8F5] px-3 py-2">
-                    <div className="text-[11px] text-[#78716C]">Status</div>
-                    <div className="mt-0.5 font-mono font-semibold text-[#181614]">
-                      {selected.health}
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-[#F0E9E1] bg-[#FAF8F5] px-3 py-2">
-                    <div className="text-[11px] text-[#78716C]">
-                      {selected.version ? "Branch / Version" : "Last check"}
-                    </div>
-                    <div className="mt-0.5 truncate font-mono font-semibold text-[#181614]">
-                      {selected.version || formatRelative(selected.lastCheckedAt)}
-                    </div>
-                  </div>
-                </div>
-
-                {selected.url && (
-                  <div className="rounded-lg border border-[#F0E9E1] bg-[#FAF8F5] px-3 py-2">
-                    <div className="text-[11px] text-[#78716C]">Health endpoint</div>
-                    <a
-                      href={selected.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-0.5 inline-flex items-center gap-1 break-all font-mono text-[11.5px] text-[#B83B00] hover:underline"
-                    >
-                      <span>{selected.url}</span>
-                      <ExternalLink size={11} className="shrink-0" />
-                    </a>
-                  </div>
-                )}
-
-                {selected.serviceKey === "signals" ? (
-                  <div className="space-y-2">
-                    <p className="text-[#5C5650]">
-                      {project.capabilities.activeSignalsCount} of{" "}
-                      {project.capabilities.totalSignalsCount} signals are reporting live.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={onOpenSignals}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-[#FF5500] px-3 py-1.5 text-[12px] font-medium text-white hover:bg-[#E04B00] cursor-pointer"
-                    >
-                      <span>Configure missing signals</span>
-                      <ArrowRight size={13} />
-                    </button>
-                  </div>
-                ) : selected.serviceKey === "repo" ? (
-                  <div className="space-y-2">
-                    {scans[0] ? (
-                      <div className="rounded-lg border border-[#F0E9E1] bg-[#FAF8F5] p-3">
-                        <div className="flex items-center justify-between font-mono text-[11.5px]">
-                          <span>{scans[0].branch}</span>
-                          <span className="font-semibold text-[#181614]">
-                            {scans[0].verdictKind}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[12px] text-[#5C5650]">
-                          {scans[0].githubCheckRun.title}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-[#665E56]">No security scans recorded yet.</p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={onOpenSecurity}
-                      className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#B83B00] hover:underline cursor-pointer"
-                    >
-                      <span>View security gate</span>
-                      <ArrowRight size={13} />
-                    </button>
-                  </div>
-                ) : selectedIncidents.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="text-[11.5px] font-medium text-[#78716C]">
-                      Incidents on this service
-                    </div>
-                    {selectedIncidents.slice(0, 3).map((inc) => (
-                      <button
-                        key={inc.id}
-                        type="button"
-                        onClick={() => onOpenIncident(inc.id)}
-                        className="w-full rounded-lg border border-[#EAE2D9] bg-[#FAF8F5] p-2.5 text-left transition-colors hover:border-[#FF5500]/50 cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between gap-2 font-mono text-[11px] text-[#78716C]">
-                          <span>{inc.id}</span>
-                          <span>{inc.status}</span>
-                        </div>
-                        <div className="mt-0.5 font-medium text-[#181614]">{inc.title}</div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[#665E56]">No open incidents on this service.</p>
-                )}
-              </div>
-            </aside>
-          )}
-        </div>
-
-        {/* Right: Single Compact Active Incident / Health Card */}
+      {/* TOP ROW: Live Status / Active Incident + Monitored Services Summary */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+        {/* Active Incident / Health Card */}
         <div className="relative flex flex-col justify-between overflow-hidden rounded-xl border border-[#EAE2D9] bg-white p-5 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
           {openIncident && (
             <BorderBeam size={110} duration={8} colorFrom="#FF5500" colorTo="#FDBA74" />
@@ -450,7 +162,7 @@ export function ProjectOverviewPage({
                   <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-[#181614]">
                     {openIncident.title}
                   </h2>
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-[#5C5650]">
+                  <p className="mt-1 text-[13px] leading-relaxed text-[#5C5650]">
                     {openIncident.diagnosisSummary}
                   </p>
                 </div>
@@ -468,7 +180,6 @@ export function ProjectOverviewPage({
                       <NumberTicker
                         value={Number((openIncident.timeToDiagnosisMs / 1000).toFixed(1))}
                         decimalPlaces={1}
-                        className="text-[#181614]"
                       />
                       s
                     </div>
@@ -510,10 +221,10 @@ export function ProjectOverviewPage({
                 <p className="text-[13px] leading-relaxed text-[#5C5650]">
                   {latestIncident
                     ? `Last incident (${latestIncident.id}) was diagnosed in ${(latestIncident.timeToDiagnosisMs / 1000).toFixed(1)}s and resolved ${formatRelative(latestIncident.alarmRaisedAt)}.`
-                    : "Patch-Up is listening in push-on-break mode. When a service throws a 5xx spike or unhandled exception, it pushes its recent logs for instant diagnosis."}
+                    : "Patch-Up is listening in push-on-break mode. When a service faults, it pushes its recent logs for instant diagnosis."}
                 </p>
 
-                <div className="space-y-2 pt-1 text-[12.5px]">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 pt-1 text-[12.5px]">
                   <div className="flex items-center justify-between rounded-lg border border-[#F0E9E1] bg-[#FAF8F5] px-3 py-2">
                     <span className="inline-flex items-center gap-1.5 text-[#5C5650]">
                       <Lock size={13} className="text-[#15803D]" aria-hidden="true" />
@@ -526,7 +237,7 @@ export function ProjectOverviewPage({
                   <div className="flex items-center justify-between rounded-lg border border-[#F0E9E1] bg-[#FAF8F5] px-3 py-2">
                     <span className="inline-flex items-center gap-1.5 text-[#5C5650]">
                       <ShieldCheck size={13} className="text-[#78716C]" aria-hidden="true" />
-                      Signals active
+                      Signals
                     </span>
                     <button
                       type="button"
@@ -555,11 +266,80 @@ export function ProjectOverviewPage({
             </>
           )}
         </div>
+
+        {/* Monitored Services + Jump to 3D Architecture */}
+        <div className="flex flex-col justify-between rounded-xl border border-[#EAE2D9] bg-white p-5 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
+          <div>
+            <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#F0E9E1]">
+              <h3 className="text-[13.5px] font-semibold text-[#181614]">Monitored services</h3>
+              <button
+                type="button"
+                onClick={onOpenArchitecture}
+                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#B83B00] hover:underline cursor-pointer"
+              >
+                <Boxes size={13} />
+                <span>Open 3D Architecture →</span>
+              </button>
+            </div>
+
+            <div className="mt-3 divide-y divide-[#F0E9E1]">
+              {(services.length > 0
+                ? services
+                : [
+                    {
+                      id: "gateway-service",
+                      name: "gateway",
+                      url: project.deployedUrl || "",
+                      status: project.capabilities.healthEndpoint ? "HEALTHY" : "DEGRADED",
+                      errorRate5xx: 0,
+                      p95LatencyMs: 0,
+                      throughputRpm: 0,
+                      version: project.defaultBranch,
+                      lastCheckedAt: project.capabilities.checkedAt,
+                    },
+                  ]
+              ).map((svc) => (
+                <button
+                  key={svc.id}
+                  type="button"
+                  onClick={onOpenArchitecture}
+                  className="flex w-full items-center justify-between gap-3 py-2.5 text-left hover:bg-[#FAF8F5] rounded-md px-1.5 transition-colors cursor-pointer"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#EFE8E0] bg-[#FAF8F5] text-[#5C5650]">
+                      <ServiceIcon name={svc.name} />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate font-mono text-[12.5px] font-semibold text-[#181614]">
+                        {svc.name}-service
+                      </div>
+                      <div className="truncate font-mono text-[11px] text-[#78716C]">
+                        {svc.p95LatencyMs > 0 ? `p95 ${svc.p95LatencyMs}ms` : svc.version}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 font-mono text-[11px] font-medium",
+                      svc.status === "DOWN"
+                        ? "bg-[#FEF2F2] text-[#B91C1C]"
+                        : svc.status === "DEGRADED"
+                          ? "bg-[#FFFBEB] text-[#B45309]"
+                          : "bg-[#F0FDF4] text-[#15803D]",
+                    )}
+                  >
+                    {svc.status}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* MIDDLE ROW: 3 Real Bklit Charts */}
+      {/* MIDDLE ROW: 3 Full-Space Real Bklit Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* 1. Error Rate AreaChart */}
         <div className="rounded-xl border border-[#EAE2D9] bg-white p-4 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-[13.5px] font-semibold text-[#181614]">Error rate (5xx %)</h3>
@@ -581,18 +361,17 @@ export function ProjectOverviewPage({
               <ChartTooltip />
             </AreaChart>
           ) : (
-            <div className="flex h-[165px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] px-4 text-center">
+            <div className="flex h-[175px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] px-4 text-center">
               <span className="font-mono text-[12px] font-medium text-[#5C5650]">
                 Collecting probe history
               </span>
               <span className="mt-1 text-[11.5px] text-[#78716C]">
-                First 2 points appear after two 5-minute probes (or click Re-check in Signals).
+                First 2 points appear after two 5-minute probes.
               </span>
             </div>
           )}
         </div>
 
-        {/* 2. p95 Latency LineChart */}
         <div className="rounded-xl border border-[#EAE2D9] bg-white p-4 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-[13.5px] font-semibold text-[#181614]">p95 latency (ms)</h3>
@@ -614,7 +393,7 @@ export function ProjectOverviewPage({
               <ChartTooltip />
             </LineChart>
           ) : (
-            <div className="flex h-[165px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] px-4 text-center">
+            <div className="flex h-[175px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] px-4 text-center">
               <span className="font-mono text-[12px] font-medium text-[#5C5650]">
                 Collecting latency baseline
               </span>
@@ -625,7 +404,6 @@ export function ProjectOverviewPage({
           )}
         </div>
 
-        {/* 3. Diagnosis Time per Incident BarChart */}
         <div className="rounded-xl border border-[#EAE2D9] bg-white p-4 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-[13.5px] font-semibold text-[#181614]">Diagnosis time (s)</h3>
@@ -647,7 +425,7 @@ export function ProjectOverviewPage({
               <ChartTooltip />
             </BarChart>
           ) : (
-            <div className="flex h-[165px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] px-4 text-center">
+            <div className="flex h-[175px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] px-4 text-center">
               <span className="font-mono text-[12px] font-medium text-[#5C5650]">
                 No incidents recorded
               </span>
@@ -659,7 +437,7 @@ export function ProjectOverviewPage({
         </div>
       </div>
 
-      {/* BOTTOM: Recent Activity List */}
+      {/* BOTTOM: Recent Activity */}
       <section className="rounded-xl border border-[#EAE2D9] bg-white shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
         <div className="border-b border-[#EFE8E0] px-5 py-3">
           <h3 className="text-[13.5px] font-semibold text-[#181614]">Recent activity</h3>

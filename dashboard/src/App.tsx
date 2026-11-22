@@ -4,7 +4,9 @@ import { AppShell } from "@/components/AppShell";
 import { PostmortemDrawer } from "@/components/PostmortemDrawer";
 import { ImportProjectDialog } from "@/components/ProjectsPanel";
 import { FALLBACK_OVERVIEW } from "@/data/fallbackData";
+import LandingPage from "@/landing/LandingPage";
 import { type AppRoute, buildPath, parseRoute } from "@/lib/router";
+import { ArchitecturePage } from "@/pages/ArchitecturePage";
 import { IncidentDetailPage } from "@/pages/IncidentDetailPage";
 import { IncidentsPage } from "@/pages/IncidentsPage";
 import { ProjectOverviewPage } from "@/pages/ProjectOverviewPage";
@@ -32,7 +34,7 @@ export function App() {
   const [importOpen, setImportOpen] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
-  const [operatorToken, setOperatorToken] = useState("patchup-operator-2026");
+  const [operatorToken, setOperatorToken] = useState("");
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [installNotice, setInstallNotice] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -72,6 +74,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (route.kind === "landing") return;
     void fetchOverview();
 
     const es = new EventSource(`${API_BASE}/api/events/stream`);
@@ -108,7 +111,7 @@ export function App() {
       ws?.close();
       clearInterval(poll);
     };
-  }, [fetchOverview]);
+  }, [fetchOverview, route.kind]);
 
   const projects = data.projects ?? FALLBACK_OVERVIEW.projects ?? [];
   const activeProject =
@@ -209,6 +212,11 @@ export function App() {
     [fetchOverview, navigate],
   );
 
+  // Full Landing Page at `/`
+  if (route.kind === "landing") {
+    return <LandingPage onEnterDashboard={() => navigate({ kind: "projects" })} />;
+  }
+
   return (
     <AppShell
       route={route}
@@ -265,6 +273,33 @@ export function App() {
           scans={data.sietchScans}
           probeHistory={(data.probeHistoryByProject ?? {})[activeProject.id] ?? []}
           ephemeralTotalPurged={data.ephemeralStats?.totalPurged ?? 0}
+          onOpenArchitecture={() =>
+            navigate({ kind: "project", projectId: activeProject.id, tab: "architecture" })
+          }
+          onOpenIncident={(incidentId) =>
+            navigate({
+              kind: "project",
+              projectId: activeProject.id,
+              tab: "incidents",
+              incidentId,
+            })
+          }
+          onOpenSignals={() =>
+            navigate({ kind: "project", projectId: activeProject.id, tab: "signals" })
+          }
+          onOpenSecurity={() =>
+            navigate({ kind: "project", projectId: activeProject.id, tab: "security" })
+          }
+        />
+      )}
+
+      {route.kind === "project" && activeProject && route.tab === "architecture" && (
+        <ArchitecturePage
+          project={activeProject}
+          services={data.projectServices ?? []}
+          incidents={projectIncidents}
+          scans={data.sietchScans}
+          apiBase={API_BASE}
           onOpenIncident={(incidentId) =>
             navigate({
               kind: "project",
