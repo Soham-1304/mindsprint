@@ -92,9 +92,75 @@ function computeCapabilitiesSummary(
   };
 }
 
+export interface ProjectProbePoint {
+  timestamp: string;
+  errorRatePct: number;
+  latencyP95Ms: number;
+  statusCode: number;
+  healthy: boolean;
+}
+
 export class ProjectManager {
+  private rediscoverTimer: NodeJS.Timeout | null = null;
+  private probeHistory = new Map<string, ProjectProbePoint[]>();
+
   constructor() {
     this.seedDefaultProject();
+    this.scheduleRediscovery();
+  }
+
+  public getProbeHistory(projectId: string): ProjectProbePoint[] {
+    return this.probeHistory.get(projectId) ?? [];
+  }
+
+  private recordProbePoint(projectId: string, point: ProjectProbePoint): void {
+    const list = this.probeHistory.get(projectId) ?? [];
+    list.push(point);
+    if (list.length > 288) list.shift();
+    this.probeHistory.set(projectId, list);
+  }
+
+  public async updateProjectSettings(
+    projectId: string,
+    patch: Partial<
+      Pick<
+        LinkedProject,
+        'deployedUrl' | 'defaultBranch' | 'healthEndpoint' | 'metricsEndpoint' | 'telemetryEndpoint' | 'prometheusUrl'
+      >
+    >
+  ): Promise<LinkedProject> {
+    const existing = sqliteStore.getProjectById(projectId);
+    if (!existing) throw new Error(`Project not found: ${projectId}`);
+    const updated: LinkedProject = {
+      ...existing,
+      ...(patch.deployedUrl !== undefined ? { deployedUrl: patch.deployedUrl || undefined } : {}),
+      ...(patch.defaultBranch ? { defaultBranch: patch.defaultBranch } : {}),
+      ...(patch.healthEndpoint ? { healthEndpoint: patch.healthEndpoint } : {}),
+      ...(patch.metricsEndpoint ? { metricsEndpoint: patch.metricsEndpoint } : {}),
+      ...(patch.telemetryEndpoint ? { telemetryEndpoint: patch.telemetryEndpoint } : {}),
+      ...(patch.prometheusUrl !== undefined ? { prometheusUrl: patch.prometheusUrl || undefined } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+    sqliteStore.saveProject(updated);
+    const capabilities = await this.discoverCapabilities(projectId);
+    return { ...updated, capabilities, updatedAt: new Date().toISOString() };
+  }
+
+  /**
+   * Probe every linked project's /health, /metrics and /api/telemetry shortly after boot
+   * (Render's ephemeral disk wipes the stored capabilities on every restart) and then
+   * every 5 minutes, so the dashboard reflects the live state instead of stale `false`s.
+   */
+  private scheduleRediscovery(): void {
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST) return;
+    const runAll = () => {
+      for (const project of sqliteStore.getProjects()) {
+        void this.discoverCapabilities(project.id).catch(() => {});
+      }
+    };
+    setTimeout(runAll, 3_000).unref?.();
+    this.rediscoverTimer = setInterval(runAll, 5 * 60_000);
+    this.rediscoverTimer.unref?.();
   }
 
   private seedDefaultProject(): void {
@@ -301,6 +367,9 @@ export class ProjectManager {
     let healthEndpoint = false;
     let prometheusMetrics = false;
     let jsonTelemetry = false;
+    let probeLatencyMs = 0;
+    let probeErrorRatePct = 0;
+    let probeStatusCode = 0;
 
     const deployedUrl = project.deployedUrl?.trim();
     if (deployedUrl) {
@@ -314,18 +383,58 @@ export class ProjectManager {
         project.telemetryEndpoint || '/api/telemetry'
       );
 
-      const [healthPrimaryOk, promOk, telemetryOk] = await Promise.all([
+      const startedAt = Date.now();
+      const [healthPrimaryOk, promOk, telemetryResult] = await Promise.all([
         this.probeHttpOk(primaryHealthUrl),
         this.probePrometheus(metricsTargetUrl),
-        this.probeJsonTelemetry(telemetryTargetUrl),
+        (async () => {
+          try {
+            const res = await fetch(telemetryTargetUrl, {
+              method: 'GET',
+              headers: { Accept: 'application/json' },
+              signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+            });
+            if (res.status !== 200) return { ok: false, body: null as any };
+            const body = await res.json().catch(() => null);
+            return { ok: body !== null, body };
+          } catch {
+            return { ok: false, body: null as any };
+          }
+        })(),
       ]);
+      probeLatencyMs = Math.max(1, Date.now() - startedAt);
 
       healthEndpoint = healthPrimaryOk;
       if (!healthEndpoint && primaryHealthUrl !== fallbackHealthUrl) {
         healthEndpoint = await this.probeHttpOk(fallbackHealthUrl);
       }
+      probeStatusCode = healthEndpoint ? 200 : 503;
       prometheusMetrics = promOk;
-      jsonTelemetry = telemetryOk;
+      jsonTelemetry = telemetryResult.ok;
+
+      if (telemetryResult.body && typeof telemetryResult.body === 'object') {
+        const b = telemetryResult.body;
+        const rate =
+          typeof b.errorRate5xx === 'number'
+            ? b.errorRate5xx * 100
+            : typeof b.errorRate === 'number'
+              ? b.errorRate * 100
+              : 0;
+        if (Number.isFinite(rate)) probeErrorRatePct = Number(rate.toFixed(2));
+        if (typeof b.p95LatencyMs === 'number' && Number.isFinite(b.p95LatencyMs)) {
+          probeLatencyMs = Math.round(b.p95LatencyMs);
+        }
+      } else if (!healthEndpoint) {
+        probeErrorRatePct = 100;
+      }
+
+      this.recordProbePoint(projectId, {
+        timestamp: new Date().toISOString(),
+        errorRatePct: probeErrorRatePct,
+        latencyP95Ms: probeLatencyMs,
+        statusCode: probeStatusCode,
+        healthy: healthEndpoint,
+      });
     } else if (project.prometheusUrl?.trim()) {
       prometheusMetrics = await this.probePrometheus(project.prometheusUrl.trim());
     }

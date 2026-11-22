@@ -9,6 +9,7 @@ import { handsService } from '../services/handsService.js';
 import { webhookService, sietchStore } from '../services/webhookService.js';
 import { syntheticProber } from '../services/syntheticProber.js';
 import { projectManager } from '../services/projectManager.js';
+import { prBot } from '../pr-bot/index.js';
 import { githubAppAuth } from '../github-app/auth.js';
 import { sqliteStore } from '../db/sqliteStore.js';
 import { ephemeralVault } from '../privacy/ephemeralVault.js';
@@ -651,6 +652,70 @@ router.get('/incidents/:id', (req: Request, res: Response) => {
   return res.json({ success: true, incident });
 });
 
+router.get('/incidents/:id/diff', async (req: Request, res: Response) => {
+  const incident = incidentManager.getById(String(req.params.id));
+  if (!incident) return res.status(404).json({ error: 'Incident not found' });
+
+  let diffText = '';
+  let source: 'github_pr' | 'blame_fallback' | 'none' = 'none';
+
+  if (incident.fixPrNumber) {
+    const project = incident.projectId
+      ? projectManager.getProject(incident.projectId)
+      : projectManager.listProjects()[0];
+    const owner = project?.repoOwner || CONFIG.GITHUB_OWNER;
+    const repo = project?.repoName || CONFIG.GITHUB_REPO;
+    try {
+      const fetched = await prBot.fetchPullRequestDiff(incident.fixPrNumber, owner, repo);
+      if (fetched && fetched.trim().length > 0) {
+        diffText = fetched;
+        source = 'github_pr';
+      }
+    } catch {
+      // Fallback below
+    }
+  }
+
+  if (!diffText && incident.evidence?.suspectCommit?.diff) {
+    diffText = incident.evidence.suspectCommit.diff;
+    source = 'blame_fallback';
+  }
+
+  return res.json({
+    success: true,
+    incidentId: incident.id,
+    prNumber: incident.fixPrNumber ?? null,
+    prUrl: incident.fixPrUrl ?? null,
+    source,
+    diff: diffText,
+  });
+});
+
+router.patch('/projects/:id', async (req: Request, res: Response) => {
+  try {
+    const projectId = String(req.params.id);
+    const {
+      deployedUrl,
+      defaultBranch,
+      healthEndpoint,
+      metricsEndpoint,
+      telemetryEndpoint,
+      prometheusUrl,
+    } = req.body || {};
+    const project = await projectManager.updateProjectSettings(projectId, {
+      ...(deployedUrl !== undefined ? { deployedUrl: String(deployedUrl).trim() } : {}),
+      ...(defaultBranch ? { defaultBranch: String(defaultBranch).trim() } : {}),
+      ...(healthEndpoint ? { healthEndpoint: String(healthEndpoint).trim() } : {}),
+      ...(metricsEndpoint ? { metricsEndpoint: String(metricsEndpoint).trim() } : {}),
+      ...(telemetryEndpoint ? { telemetryEndpoint: String(telemetryEndpoint).trim() } : {}),
+      ...(prometheusUrl !== undefined ? { prometheusUrl: String(prometheusUrl).trim() } : {}),
+    });
+    return res.json({ success: true, project });
+  } catch (err: any) {
+    return res.status(404).json({ error: err?.message || 'Project not found' });
+  }
+});
+
 router.get('/incidents/:id/report.md', (req: Request, res: Response) => {
   const id = String(req.params.id);
   const incident = incidentManager.getById(id);
@@ -824,6 +889,21 @@ router.get('/dashboard/overview', (_req: Request, res: Response) => {
     });
 
   const projects = projectManager.listProjects();
+  const probeHistoryByProject: Record<string, ReturnType<typeof projectManager.getProbeHistory>> = {};
+  for (const p of projects) {
+    probeHistoryByProject[p.id] = projectManager.getProbeHistory(p.id);
+  }
+  const projectServices = services.map((s) => ({
+    id: s.id,
+    name: s.id.replace(/-service$/, ''),
+    url: s.healthUrl,
+    status: s.status,
+    errorRate5xx: s.currentStats.errorRate5xx,
+    p95LatencyMs: s.currentStats.p95LatencyMs,
+    throughputRpm: s.currentStats.throughputRpm,
+    version: s.currentVersion,
+    lastCheckedAt: s.lastCheck,
+  }));
 
   res.json({
     target: {
@@ -838,6 +918,8 @@ router.get('/dashboard/overview', (_req: Request, res: Response) => {
       services: mappedServices,
     },
     projects,
+    projectServices,
+    probeHistoryByProject,
     activeProjectId: projects[0]?.id || 'pulseshop',
     monitoringMode: CONFIG.MONITORING_MODE,
     githubApp: {

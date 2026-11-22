@@ -1,7 +1,6 @@
 import {
   CheckCircle2,
   ExternalLink,
-  FolderGit2,
   GitBranch,
   Lock,
   Plus,
@@ -10,89 +9,70 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import type { GitHubAppStatus, GitHubRepoOption, LinkedProject } from "../types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { GitHubAppStatus, GitHubRepoOption, LinkedProject } from "@/types";
 
-interface ProjectsPanelProps {
+interface ImportProjectDialogProps {
+  open: boolean;
+  onClose: () => void;
   apiBase: string;
   projects: LinkedProject[];
-  activeProjectId: string;
   githubApp?: GitHubAppStatus;
-  onSelectProject: (projectId: string) => void;
   onProjectImported: (project: LinkedProject) => void;
-  onRescanSignals: (projectId: string) => Promise<void>;
-  onDeleteProject?: (projectId: string) => Promise<void>;
-  onCloseModal?: () => void;
 }
 
-export function ProjectsPanel({
+export function ImportProjectDialog({
+  open,
+  onClose,
   apiBase,
   projects,
   githubApp,
   onProjectImported,
-  onCloseModal,
-}: ProjectsPanelProps) {
+}: ImportProjectDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   const [repos, setRepos] = useState<GitHubRepoOption[]>([]);
-  const [loadingRepos, setLoadingRepos] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRepo, setSelectedRepo] = useState<GitHubRepoOption | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<GitHubRepoOption | null>(null);
   const [deployedUrl, setDeployedUrl] = useState("");
-  const [prometheusUrl, setPrometheusUrl] = useState("");
   const [importing, setImporting] = useState(false);
-  const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const loadRepos = useCallback(async () => {
-    setLoadingRepos(true);
+    setLoading(true);
     try {
       const resp = await fetch(`${apiBase}/api/github/repos`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) throw new Error();
       const json = (await resp.json()) as { repos?: GitHubRepoOption[] };
-      if (Array.isArray(json.repos)) {
-        setRepos(json.repos);
-      }
+      if (Array.isArray(json.repos)) setRepos(json.repos);
     } catch {
-      setRepos([
-        {
-          id: 1,
-          owner: "Soham-1304",
-          name: "pulseshop",
-          fullName: "Soham-1304/pulseshop",
-          defaultBranch: "main",
-          private: false,
-          htmlUrl: "https://github.com/Soham-1304/pulseshop",
-        },
-      ]);
+      setRepos([]);
     } finally {
-      setLoadingRepos(false);
+      setLoading(false);
     }
   }, [apiBase]);
 
   useEffect(() => {
-    void loadRepos();
-  }, [loadRepos]);
-
-  async function handleInstallGitHubApp() {
-    try {
-      const resp = await fetch(`${apiBase}/api/github/install`, {
-        headers: { Accept: "application/json" },
-      });
-      if (resp.ok) {
-        const json = (await resp.json()) as { installUrl?: string };
-        if (json.installUrl) {
-          window.open(json.installUrl, "_blank", "noopener,noreferrer");
-          return;
-        }
-      }
-    } catch {
-      // Fallback
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open) {
+      if (!dialog.open) dialog.showModal();
+      void loadRepos();
+    } else if (dialog.open) {
+      dialog.close();
     }
-    if (githubApp?.installUrl) {
-      window.open(githubApp.installUrl, "_blank", "noopener,noreferrer");
-    } else {
-      window.open(`${apiBase}/api/github/install`, "_blank", "noopener,noreferrer");
-    }
-  }
+  }, [open, loadRepos]);
 
-  async function handleImportSubmit(repo: GitHubRepoOption) {
+  const filtered = repos.filter((r) => {
+    const q = query.trim().toLowerCase();
+    return !q || r.fullName.toLowerCase().includes(q);
+  });
+
+  async function handleImport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected) return;
     setImporting(true);
     setFeedback(null);
     try {
@@ -100,242 +80,189 @@ export function ProjectsPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          repoOwner: repo.owner,
-          repoName: repo.name,
-          defaultBranch: repo.defaultBranch || "main",
-          installationId: repo.installationId,
+          repoOwner: selected.owner,
+          repoName: selected.name,
+          defaultBranch: selected.defaultBranch,
+          installationId: selected.installationId,
           deployedUrl: deployedUrl.trim() || undefined,
-          prometheusUrl: prometheusUrl.trim() || undefined,
         }),
       });
-      const json = (await resp.json().catch(() => ({}))) as {
-        project?: LinkedProject;
-        error?: string;
-      };
+      const json = (await resp.json()) as { project?: LinkedProject; error?: string };
       if (!resp.ok || !json.project) {
-        setFeedback({ ok: false, message: json.error ?? `Import failed (HTTP ${resp.status})` });
+        setFeedback({ ok: false, msg: json.error || "Import failed." });
         return;
       }
-      setFeedback({
-        ok: true,
-        message: `Imported ${json.project.fullName} (${json.project.capabilities.activeSignalsCount}/${json.project.capabilities.totalSignalsCount} signals active).`,
-      });
-      setSelectedRepo(null);
-      setDeployedUrl("");
-      setPrometheusUrl("");
       onProjectImported(json.project);
-      onCloseModal?.();
+      setSelected(null);
+      setDeployedUrl("");
+      onClose();
     } catch {
-      setFeedback({ ok: false, message: "Backend offline — could not import repository." });
+      setFeedback({ ok: false, msg: "Could not reach backend." });
     } finally {
       setImporting(false);
     }
   }
 
-  const filteredRepos = repos.filter((r) =>
-    r.fullName.toLowerCase().includes(searchQuery.trim().toLowerCase()),
-  );
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div className="search-input-wrap" style={{ flex: 1 }}>
-          <Search size={14} className="search-icon" aria-hidden="true" />
-          <input
-            className="form-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search GitHub repositories..."
-          />
-        </div>
-        <button type="button" className="btn" onClick={() => void loadRepos()} disabled={loadingRepos}>
-          <RefreshCw size={13} className={loadingRepos ? "spin-icon" : ""} />
-          <span>Refresh</span>
-        </button>
-        <button type="button" className="btn btn-soft-orange" onClick={handleInstallGitHubApp}>
-          <ExternalLink size={13} />
-          <span>Configure App</span>
-        </button>
-      </div>
-
-      {feedback && (
-        <div className={feedback.ok ? "feedback-ok" : "feedback-err"}>{feedback.message}</div>
-      )}
-
-      {selectedRepo && (
-        <div className="import-config-card">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <FolderGit2 size={15} color="var(--accent)" />
-              <span className="mono" style={{ fontWeight: 600, fontSize: 13 }}>
-                {selectedRepo.fullName}
-              </span>
-              <span className="badge badge-muted mono">
-                <GitBranch size={11} />
-                {selectedRepo.defaultBranch}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              aria-label="Cancel selection"
-              onClick={() => setSelectedRepo(null)}
-            >
-              <X size={14} />
-            </button>
-          </div>
-
-          <div className="form-grid" style={{ marginTop: 12 }}>
-            <label className="form-field">
-              <span className="form-label">Deployed URL (optional)</span>
-              <input
-                className="form-input mono"
-                value={deployedUrl}
-                onChange={(e) => setDeployedUrl(e.target.value)}
-                placeholder="https://my-app.vercel.app"
-              />
-            </label>
-            <label className="form-field">
-              <span className="form-label">Prometheus / Metrics URL (optional)</span>
-              <input
-                className="form-input mono"
-                value={prometheusUrl}
-                onChange={(e) => setPrometheusUrl(e.target.value)}
-                placeholder="https://my-app.vercel.app/metrics"
-              />
-            </label>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-            <button type="button" className="btn btn-sm" onClick={() => setSelectedRepo(null)}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              disabled={importing}
-              onClick={() => void handleImportSubmit(selectedRepo)}
-            >
-              <Plus size={14} />
-              <span>{importing ? "Importing..." : "Import Project"}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="repo-picker-list">
-        {filteredRepos.map((repo) => {
-          const alreadyLinked = projects.some((p) => p.fullName === repo.fullName);
-          return (
-            <div key={repo.id} className="repo-picker-row">
-              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                <FolderGit2 size={16} color="var(--ink-muted)" aria-hidden="true" />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                    <span className="mono" style={{ fontWeight: 600, fontSize: 13 }}>
-                      {repo.fullName}
-                    </span>
-                    {repo.private && (
-                      <span className="badge badge-muted mono">
-                        <Lock size={10} />
-                        Private
-                      </span>
-                    )}
-                    <span className="badge badge-muted mono">{repo.defaultBranch}</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className={alreadyLinked ? "btn btn-sm" : "btn btn-primary btn-sm"}
-                onClick={() => setSelectedRepo(repo)}
-              >
-                {alreadyLinked ? (
-                  <>
-                    <CheckCircle2 size={13} color="var(--safe)" />
-                    <span>Configure</span>
-                  </>
-                ) : (
-                  <span>Import</span>
-                )}
-              </button>
-            </div>
-          );
-        })}
-
-        {filteredRepos.length === 0 && (
-          <div style={{ padding: 20, textAlign: "center", color: "var(--ink-muted)", fontSize: 13 }}>
-            No matching repositories found. Click <strong>Configure App</strong> to grant repository access.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface ImportProjectDialogProps extends ProjectsPanelProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-export function ImportProjectDialog({ open, onClose, ...panelProps }: ImportProjectDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const headingId = useId();
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
   return (
     <dialog
       ref={dialogRef}
-      className="import-dialog"
-      aria-labelledby={headingId}
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
       onClick={(e) => {
-        const rect = dialogRef.current?.getBoundingClientRect();
-        if (
-          rect &&
-          (e.clientX < rect.left ||
-            e.clientX > rect.right ||
-            e.clientY < rect.top ||
-            e.clientY > rect.bottom)
-        ) {
-          onClose();
-        }
+        if (e.target === dialogRef.current) onClose();
       }}
+      className="m-auto w-[min(640px,calc(100dvw-2rem))] max-h-[85dvh] overflow-hidden rounded-2xl border border-[#EAE2D9] bg-white p-0 text-[#181614] shadow-2xl open:flex open:flex-col"
     >
-      <div className="import-dialog-head">
+      <div className="flex items-start justify-between gap-3 border-b border-[#EFE8E0] px-5 py-4">
         <div>
-          <h2 id={headingId} style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-            Import Git Repository
+          <h2 id={titleId} className="text-[16px] font-semibold text-[#181614]">
+            Import GitHub repository
           </h2>
-          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "var(--ink-secondary)" }}>
-            Select a repository to enable Sietch pre-merge checks and zero-retention fix PRs.
+          <p className="mt-0.5 text-[12.5px] text-[#665E56]">
+            Select a repository accessible to the Patch-Up SRE GitHub App.
           </p>
         </div>
         <button
           type="button"
-          className="btn btn-ghost btn-sm"
           onClick={onClose}
-          aria-label="Close import dialog"
-          autoFocus
+          aria-label="Close dialog"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#78716C] hover:bg-[#F4EFE9] cursor-pointer"
         >
           <X size={16} />
         </button>
       </div>
-      <div className="import-dialog-body">
-        <ProjectsPanel {...panelProps} onCloseModal={onClose} />
+
+      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search
+              size={14}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#78716C]"
+            />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter repositories..."
+              className="h-9 bg-white pl-8 text-[13px]"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void loadRepos()}
+            disabled={loading}
+            className="h-9 border-[#E5DCD2] cursor-pointer"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+          </Button>
+          {githubApp?.installUrl && (
+            <a
+              href={githubApp.installUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#E5DCD2] bg-white px-3 text-[12.5px] font-medium text-[#181614] hover:bg-[#F4EFE9]"
+            >
+              <ExternalLink size={12} />
+              <span>Configure App</span>
+            </a>
+          )}
+        </div>
+
+        <div className="divide-y divide-[#F0E9E1] overflow-hidden rounded-xl border border-[#EAE2D9]">
+          {filtered.length === 0 ? (
+            <div className="px-4 py-8 text-center text-[13px] text-[#78716C]">
+              {loading
+                ? "Loading repositories from GitHub..."
+                : "No repositories found. Install or grant repository access in the Patch-Up GitHub App."}
+            </div>
+          ) : (
+            filtered.map((repo) => {
+              const linked = projects.some((p) => p.fullName === repo.fullName);
+              return (
+                <div
+                  key={repo.fullName}
+                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#FAF8F5]"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 font-mono text-[13px] font-medium text-[#181614]">
+                      <GitBranch size={13} className="text-[#78716C]" />
+                      <span className="truncate">{repo.fullName}</span>
+                      {repo.private && <Lock size={11} className="text-[#78716C]" />}
+                    </div>
+                    <div className="font-mono text-[11px] text-[#78716C]">
+                      default: {repo.defaultBranch}
+                    </div>
+                  </div>
+
+                  {linked ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#F0FDF4] px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#15803D]">
+                      <CheckCircle2 size={11} />
+                      Connected
+                    </span>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setSelected(repo);
+                        setFeedback(null);
+                      }}
+                      className="h-7 bg-[#FF5500] text-white hover:bg-[#E04B00] cursor-pointer"
+                    >
+                      <Plus size={12} />
+                      <span>Import</span>
+                    </Button>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {selected && (
+          <form
+            onSubmit={(e) => void handleImport(e)}
+            className="space-y-3 rounded-xl border border-[#FBD3B7] bg-[#FFF5EE] p-4"
+          >
+            <div className="text-[13px] font-semibold text-[#181614]">
+              Configure {selected.fullName}
+            </div>
+            <div>
+              <label className="mb-1 block text-[12px] font-medium text-[#5C5650]">
+                Deployed base URL (optional)
+              </label>
+              <Input
+                value={deployedUrl}
+                onChange={(e) => setDeployedUrl(e.target.value)}
+                placeholder="https://my-app.vercel.app"
+                className="h-9 bg-white font-mono text-[12.5px]"
+              />
+            </div>
+            {feedback && (
+              <div className="text-[12px] text-[#B91C1C]">{feedback.msg}</div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelected(null)}
+                className="h-8 bg-white cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={importing}
+                className="h-8 bg-[#FF5500] text-white hover:bg-[#E04B00] cursor-pointer"
+              >
+                {importing ? "Connecting & probing..." : "Connect repository"}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
     </dialog>
   );

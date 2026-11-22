@@ -1,14 +1,18 @@
 import { CheckCircle2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { ApprovalsMatrixView } from "./components/ApprovalsMatrixView";
-import { PostmortemDrawer } from "./components/PostmortemDrawer";
-import { ProjectsOverviewView } from "./components/ProjectsOverviewView";
-import { ImportProjectDialog } from "./components/ProjectsPanel";
-import { SietchChamberView } from "./components/SietchChamberView";
-import { StudioView } from "./components/StudioView";
-import { TopNavShell } from "./components/TopNavShell";
-import { FALLBACK_OVERVIEW } from "./data/fallbackData";
-import type { ActiveTab, DashboardOverview, LinkedProject } from "./types";
+import { AppShell } from "@/components/AppShell";
+import { PostmortemDrawer } from "@/components/PostmortemDrawer";
+import { ImportProjectDialog } from "@/components/ProjectsPanel";
+import { FALLBACK_OVERVIEW } from "@/data/fallbackData";
+import { type AppRoute, buildPath, parseRoute } from "@/lib/router";
+import { IncidentDetailPage } from "@/pages/IncidentDetailPage";
+import { IncidentsPage } from "@/pages/IncidentsPage";
+import { ProjectOverviewPage } from "@/pages/ProjectOverviewPage";
+import { ProjectSettingsPage } from "@/pages/ProjectSettingsPage";
+import { ProjectsPage } from "@/pages/ProjectsPage";
+import { SecurityGatePage } from "@/pages/SecurityGatePage";
+import { SignalsSetupPage } from "@/pages/SignalsSetupPage";
+import type { DashboardOverview, LinkedProject } from "@/types";
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
 
@@ -22,31 +26,39 @@ function resolveWsUrl(): string {
 
 export function App() {
   const [data, setData] = useState<DashboardOverview>(FALLBACK_OVERVIEW);
-  const [activeTab, setActiveTab] = useState<ActiveTab>("studio");
-  const [securitySubTab, setSecuritySubTab] = useState<"approvals" | "gate">("approvals");
+  const [route, setRoute] = useState<AppRoute>(() => parseRoute(window.location.pathname));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerIncidentId, setDrawerIncidentId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [operatorToken, setOperatorToken] = useState("patchup-operator-2026");
   const [approvalError, setApprovalError] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    FALLBACK_OVERVIEW.activeProjectId ?? "pulseshop",
-  );
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [installNotice, setInstallNotice] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("github_installed") === "1") {
       const id = params.get("installation_id");
       return id
-        ? `Patch-Up GitHub App connected (Installation #${id}). Select a repository to import.`
-        : "Patch-Up GitHub App connected. Select a repository to import.";
+        ? `GitHub App connected (Installation #${id}). Import a repository below.`
+        : "GitHub App connected. Import a repository below.";
     }
     return null;
   });
 
-  const projects = data.projects ?? FALLBACK_OVERVIEW.projects ?? [];
-  const activeProject = projects.find((p) => p.id === selectedProjectId) ?? projects[0];
+  const navigate = useCallback((next: AppRoute) => {
+    const path = buildPath(next);
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, "", path);
+    }
+    setRoute(next);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
+  useEffect(() => {
+    const onPop = () => setRoute(parseRoute(window.location.pathname));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const fetchOverview = useCallback(async () => {
     try {
@@ -55,7 +67,7 @@ export function App() {
       const json = (await resp.json()) as DashboardOverview;
       setData(json);
     } catch {
-      // Backend offline — keep latest snapshot gracefully
+      // Offline — preserve last snapshot
     }
   }, []);
 
@@ -63,23 +75,20 @@ export function App() {
     void fetchOverview();
 
     const es = new EventSource(`${API_BASE}/api/events/stream`);
-    const refreshFromEvent = () => {
-      void fetchOverview();
-    };
+    const refresh = () => void fetchOverview();
     es.addEventListener("connected", () => setSseConnected(true));
-    es.addEventListener("sietch_scan", refreshFromEvent);
-    es.addEventListener("SIETCH_SCAN_COMPLETE", refreshFromEvent);
-    es.addEventListener("approval_updated", refreshFromEvent);
-    es.addEventListener("postmortem_created", refreshFromEvent);
-    es.addEventListener("incident_detected", refreshFromEvent);
-    es.addEventListener("incident_diagnosed", refreshFromEvent);
-    es.addEventListener("incident_updated", refreshFromEvent);
-    es.addEventListener("INCIDENT_DETECTED", refreshFromEvent);
-    es.addEventListener("INCIDENT_DIAGNOSED", refreshFromEvent);
-    es.addEventListener("INCIDENT_UPDATED", refreshFromEvent);
-    es.addEventListener("SERVICE_UPDATED", refreshFromEvent);
-    es.addEventListener("SYSTEM_RESET", refreshFromEvent);
-    es.onmessage = refreshFromEvent;
+    es.addEventListener("sietch_scan", refresh);
+    es.addEventListener("SIETCH_SCAN_COMPLETE", refresh);
+    es.addEventListener("approval_updated", refresh);
+    es.addEventListener("postmortem_created", refresh);
+    es.addEventListener("incident_detected", refresh);
+    es.addEventListener("incident_diagnosed", refresh);
+    es.addEventListener("incident_updated", refresh);
+    es.addEventListener("INCIDENT_DETECTED", refresh);
+    es.addEventListener("INCIDENT_DIAGNOSED", refresh);
+    es.addEventListener("INCIDENT_UPDATED", refresh);
+    es.addEventListener("SERVICE_UPDATED", refresh);
+    es.onmessage = refresh;
     es.onerror = () => setSseConnected(false);
 
     let ws: WebSocket | null = null;
@@ -88,13 +97,12 @@ export function App() {
       ws.onopen = () => setWsConnected(true);
       ws.onclose = () => setWsConnected(false);
       ws.onerror = () => setWsConnected(false);
-      ws.onmessage = () => refreshFromEvent();
+      ws.onmessage = () => refresh();
     } catch {
       setWsConnected(false);
     }
 
     const poll = setInterval(() => void fetchOverview(), 10000);
-
     return () => {
       es.close();
       ws?.close();
@@ -102,64 +110,41 @@ export function App() {
     };
   }, [fetchOverview]);
 
+  const projects = data.projects ?? FALLBACK_OVERVIEW.projects ?? [];
+  const activeProject =
+    route.kind === "project"
+      ? projects.find((p) => p.id === route.projectId) ?? projects[0]
+      : undefined;
+
+  const projectIncidents = activeProject
+    ? data.incidents.filter((i) => !i.projectId || i.projectId === activeProject.id)
+    : data.incidents;
+  const openIncidentsCount = projectIncidents.filter((i) => i.status !== "RESOLVED").length;
+  const pendingApprovalsCount = data.approvals.filter((a) => a.status === "PENDING").length;
+
   const handleDecideApproval = useCallback(
     async (id: string, decision: "APPROVE" | "REJECT") => {
       setApprovalError(null);
       try {
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-          "X-Operator-Token": operatorToken,
-        };
-        let resp = await fetch(`${API_BASE}/api/approvals/${id}/decide`, {
+        const resp = await fetch(`${API_BASE}/api/approvals/${id}/decide`, {
           method: "POST",
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Operator-Token": operatorToken,
+          },
           body: JSON.stringify({ decision }),
         });
-
-        if (resp.status === 404) {
-          resp = await fetch(`${API_BASE}/api/incidents/${id}/approve`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              decision: decision === "APPROVE" ? "approve" : "reject",
-              operator: "oncall-sre@pulseshop.io",
-            }),
-          });
-        }
-
         if (resp.ok) {
           await fetchOverview();
           return;
         }
         if (resp.status === 401 || resp.status === 403) {
           const err = (await resp.json().catch(() => ({}))) as { error?: string };
-          setApprovalError(err.error ?? "Invalid X-Operator-Token. Check Operator Key.");
-          return;
+          setApprovalError(err.error ?? "Invalid operator key.");
         }
       } catch {
-        // Offline fallback
+        setApprovalError("Could not reach backend.");
       }
-      setData((prev) => {
-        const nowIso = new Date().toISOString();
-        const nextApprovals = prev.approvals.map((a) =>
-          a.id === id
-            ? {
-                ...a,
-                status: (decision === "APPROVE" ? "EXECUTED" : "REJECTED") as "EXECUTED" | "REJECTED",
-                decidedBy: "oncall-sre@pulseshop.io",
-                decidedAt: nowIso,
-              }
-            : a,
-        );
-        return {
-          ...prev,
-          approvals: nextApprovals,
-          scorecard: {
-            ...prev.scorecard,
-            pendingApprovals: nextApprovals.filter((a) => a.status === "PENDING").length,
-          },
-        };
-      });
     },
     [fetchOverview, operatorToken],
   );
@@ -179,11 +164,6 @@ export function App() {
     },
     [fetchOverview],
   );
-
-  const handleOpenPostmortemForIncident = useCallback((incidentId: string) => {
-    setDrawerIncidentId(incidentId);
-    setDrawerOpen(true);
-  }, []);
 
   const handleRescanSignals = useCallback(
     async (projectId: string) => {
@@ -207,184 +187,187 @@ export function App() {
           method: "DELETE",
         });
         if (resp.ok) {
-          if (selectedProjectId === projectId) setSelectedProjectId("pulseshop");
           await fetchOverview();
+          navigate({ kind: "projects" });
         }
       } catch {
         // Offline
       }
     },
-    [fetchOverview, selectedProjectId],
+    [fetchOverview, navigate],
   );
 
   const handleProjectImported = useCallback(
     (project: LinkedProject) => {
-      setSelectedProjectId(project.id);
-      setData((prev) => {
-        const existing = prev.projects ?? [];
-        const filtered = existing.filter((p) => p.id !== project.id);
-        return {
-          ...prev,
-          projects: [project, ...filtered],
-          activeProjectId: project.id,
-        };
-      });
+      setData((prev) => ({
+        ...prev,
+        projects: [project, ...(prev.projects ?? []).filter((p) => p.id !== project.id)],
+      }));
       void fetchOverview();
+      navigate({ kind: "project", projectId: project.id, tab: "overview" });
     },
-    [fetchOverview],
+    [fetchOverview, navigate],
   );
 
   return (
-    <TopNavShell
-      activeTab={activeTab}
-      onSelectTab={setActiveTab}
-      scorecard={data.scorecard}
-      postmortemCount={data.postmortems.length}
-      sseConnected={sseConnected}
-      wsConnected={wsConnected}
+    <AppShell
+      route={route}
       projects={projects}
-      activeProjectId={activeProject?.id ?? selectedProjectId}
-      onSelectProject={setSelectedProjectId}
-      onOpenImportProject={() => setImportDialogOpen(true)}
+      activeProject={activeProject}
+      openIncidentsCount={openIncidentsCount}
+      pendingApprovalsCount={pendingApprovalsCount}
+      postmortemCount={data.postmortems.length}
+      isLive={wsConnected || sseConnected}
+      onNavigate={navigate}
       onOpenPostmortems={() => {
         setDrawerIncidentId(null);
         setDrawerOpen(true);
       }}
     >
       {installNotice && (
-        <div className="install-banner-float" role="status">
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <CheckCircle2 size={15} color="#FF5500" aria-hidden="true" />
+        <div
+          role="status"
+          className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-[#FBD3B7] bg-[#FFF5EE] px-4 py-2.5 text-[13px] text-[#B83B00]"
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={15} className="text-[#FF5500]" />
             <span>{installNotice}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                setInstallNotice(null);
-                setImportDialogOpen(true);
-              }}
-            >
-              Import Repo
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              aria-label="Dismiss notice"
-              onClick={() => setInstallNotice(null)}
-            >
-              <X size={14} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setInstallNotice(null)}
+            aria-label="Dismiss notice"
+            className="rounded p-1 hover:bg-[#FFE6D5] cursor-pointer"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 
-      {activeTab === "studio" && (
-        <StudioView
-          project={activeProject}
-          scorecard={data.scorecard}
-          incidents={data.incidents}
-          approvals={data.approvals}
-          scans={data.sietchScans}
-          apiBase={API_BASE}
-          operatorToken={operatorToken}
-          ephemeralTotalPurged={data.ephemeralStats?.totalPurged ?? 0}
-          onChangeOperatorToken={setOperatorToken}
-          onDecideApproval={handleDecideApproval}
-          onOpenImportDialog={() => setImportDialogOpen(true)}
-          onRescanSignals={handleRescanSignals}
-          onOpenPostmortem={handleOpenPostmortemForIncident}
-        />
-      )}
-
-      {activeTab === "projects" && (
-        <ProjectsOverviewView
-          apiBase={API_BASE}
+      {route.kind === "projects" && (
+        <ProjectsPage
           projects={projects}
-          activeProject={activeProject}
-          scorecard={data.scorecard}
           incidents={data.incidents}
-          approvals={data.approvals}
+          probeHistoryByProject={data.probeHistoryByProject ?? {}}
           githubApp={data.githubApp}
-          ephemeralTotalPurged={data.ephemeralStats?.totalPurged ?? 0}
-          onSelectProject={setSelectedProjectId}
-          onOpenImportDialog={() => setImportDialogOpen(true)}
-          onRescanSignals={handleRescanSignals}
-          onDeleteProject={handleDeleteProject}
-          onNavigateIncidents={() => {
-            setActiveTab("studio");
-            setTimeout(() => {
-              document.getElementById("live-agent-window")?.scrollIntoView({ behavior: "smooth" });
-            }, 60);
-          }}
-          onNavigateApprovals={() => {
-            setSecuritySubTab("approvals");
-            setActiveTab("security");
-          }}
+          onOpenProject={(projectId) =>
+            navigate({ kind: "project", projectId, tab: "overview" })
+          }
+          onOpenImportDialog={() => setImportOpen(true)}
         />
       )}
 
-      {activeTab === "security" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div className="page-header" style={{ marginBottom: 4 }}>
-            <div>
-              <h1 className="page-title">Approvals &amp; Pre-Merge Security Gate</h1>
-              <p className="page-subtitle">
-                Operator-gated production actions and automated pre-merge supply-chain checks.
-              </p>
-            </div>
-            <div className="studio-nav-pills" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={securitySubTab === "approvals"}
-                className={`studio-nav-link ${securitySubTab === "approvals" ? "active" : ""}`}
-                onClick={() => setSecuritySubTab("approvals")}
-              >
-                Approvals ({data.scorecard.pendingApprovals})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={securitySubTab === "gate"}
-                className={`studio-nav-link ${securitySubTab === "gate" ? "active" : ""}`}
-                onClick={() => setSecuritySubTab("gate")}
-              >
-                Pre-Merge Gate ({data.sietchScans.length})
-              </button>
-            </div>
-          </div>
+      {route.kind === "project" && activeProject && route.tab === "overview" && (
+        <ProjectOverviewPage
+          project={activeProject}
+          services={data.projectServices ?? []}
+          incidents={projectIncidents}
+          scans={data.sietchScans}
+          probeHistory={(data.probeHistoryByProject ?? {})[activeProject.id] ?? []}
+          ephemeralTotalPurged={data.ephemeralStats?.totalPurged ?? 0}
+          onOpenIncident={(incidentId) =>
+            navigate({
+              kind: "project",
+              projectId: activeProject.id,
+              tab: "incidents",
+              incidentId,
+            })
+          }
+          onOpenSignals={() =>
+            navigate({ kind: "project", projectId: activeProject.id, tab: "signals" })
+          }
+          onOpenSecurity={() =>
+            navigate({ kind: "project", projectId: activeProject.id, tab: "security" })
+          }
+        />
+      )}
 
-          {securitySubTab === "approvals" ? (
-            <ApprovalsMatrixView
-              approvals={data.approvals}
-              auditLog={data.auditLog}
+      {route.kind === "project" &&
+        activeProject &&
+        route.tab === "incidents" &&
+        !route.incidentId && (
+          <IncidentsPage
+            incidents={projectIncidents}
+            approvals={data.approvals}
+            onOpenIncident={(incidentId) =>
+              navigate({
+                kind: "project",
+                projectId: activeProject.id,
+                tab: "incidents",
+                incidentId,
+              })
+            }
+          />
+        )}
+
+      {route.kind === "project" &&
+        activeProject &&
+        route.tab === "incidents" &&
+        route.incidentId &&
+        (() => {
+          const inc =
+            projectIncidents.find((i) => i.id === route.incidentId) ?? projectIncidents[0];
+          if (!inc) {
+            return (
+              <div className="rounded-xl border border-[#EAE2D9] bg-white p-8 text-center text-[13px] text-[#665E56]">
+                Incident not found.
+              </div>
+            );
+          }
+          const appr = data.approvals.find((a) => a.incidentId === inc.id);
+          return (
+            <IncidentDetailPage
+              incident={inc}
+              approval={appr}
+              repoFullName={activeProject.fullName}
+              apiBase={API_BASE}
               operatorToken={operatorToken}
-              onChangeOperatorToken={setOperatorToken}
               approvalError={approvalError}
+              onChangeOperatorToken={setOperatorToken}
               onDecideApproval={handleDecideApproval}
+              onOpenPostmortem={(incId) => {
+                setDrawerIncidentId(incId);
+                setDrawerOpen(true);
+              }}
+              onBack={() =>
+                navigate({ kind: "project", projectId: activeProject.id, tab: "incidents" })
+              }
             />
-          ) : (
-            <SietchChamberView
-              scans={data.sietchScans}
-              onTriggerBranchScan={handleTriggerBranchScan}
-            />
-          )}
-        </div>
+          );
+        })()}
+
+      {route.kind === "project" && activeProject && route.tab === "security" && (
+        <SecurityGatePage
+          scans={data.sietchScans}
+          onTriggerBranchScan={handleTriggerBranchScan}
+        />
+      )}
+
+      {route.kind === "project" && activeProject && route.tab === "signals" && (
+        <SignalsSetupPage
+          project={activeProject}
+          apiBase={API_BASE}
+          onRescanSignals={handleRescanSignals}
+        />
+      )}
+
+      {route.kind === "project" && activeProject && route.tab === "settings" && (
+        <ProjectSettingsPage
+          project={activeProject}
+          auditLog={data.auditLog}
+          apiBase={API_BASE}
+          onProjectUpdated={fetchOverview}
+          onDeleteProject={handleDeleteProject}
+        />
       )}
 
       <ImportProjectDialog
-        open={importDialogOpen}
-        onClose={() => setImportDialogOpen(false)}
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
         apiBase={API_BASE}
         projects={projects}
-        activeProjectId={activeProject?.id ?? selectedProjectId}
         githubApp={data.githubApp}
-        onSelectProject={setSelectedProjectId}
         onProjectImported={handleProjectImported}
-        onRescanSignals={handleRescanSignals}
-        onDeleteProject={handleDeleteProject}
       />
 
       <PostmortemDrawer
@@ -393,7 +376,7 @@ export function App() {
         selectedIncidentId={drawerIncidentId}
         onClose={() => setDrawerOpen(false)}
       />
-    </TopNavShell>
+    </AppShell>
   );
 }
 

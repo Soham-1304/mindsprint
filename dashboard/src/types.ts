@@ -389,6 +389,26 @@ export interface PostmortemRecord {
   markdown: string;
 }
 
+export interface ProjectProbePoint {
+  timestamp: string;
+  errorRatePct: number;
+  latencyP95Ms: number;
+  statusCode: number;
+  healthy: boolean;
+}
+
+export interface ProjectServiceInfo {
+  id: string;
+  name: string;
+  url: string;
+  status: "HEALTHY" | "DEGRADED" | "DOWN";
+  errorRate5xx: number;
+  p95LatencyMs: number;
+  throughputRpm: number;
+  version: string;
+  lastCheckedAt: string;
+}
+
 export interface DashboardOverview {
   target: TargetOverview;
   scorecard: ScorecardMetrics;
@@ -399,6 +419,8 @@ export interface DashboardOverview {
   postmortems: PostmortemRecord[];
   applications?: ConnectedApplication[];
   projects?: LinkedProject[];
+  projectServices?: ProjectServiceInfo[];
+  probeHistoryByProject?: Record<string, ProjectProbePoint[]>;
   activeProjectId?: string;
   monitoringMode?: MonitoringMode;
   githubApp?: GitHubAppStatus;

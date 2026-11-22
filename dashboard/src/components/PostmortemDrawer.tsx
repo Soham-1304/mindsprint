@@ -1,6 +1,7 @@
-import { Check, Clock, Copy, Download, ExternalLink, FileText, X } from "lucide-react";
-import { Fragment, type ReactNode, useEffect, useId, useRef, useState } from "react";
-import type { PostmortemRecord } from "../types";
+import { Check, Copy, Download, ExternalLink, FileText, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import type { PostmortemRecord } from "@/types";
 
 interface PostmortemDrawerProps {
   open: boolean;
@@ -9,189 +10,52 @@ interface PostmortemDrawerProps {
   onClose: () => void;
 }
 
-function formatIsoShort(iso: string): string {
-  try {
-    return new Date(iso).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function formatMs(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const sec = ms / 1000;
-  if (sec < 60) return `${sec.toFixed(1)}s`;
-  const mins = Math.floor(sec / 60);
-  const rem = Math.round(sec % 60);
-  return `${mins}m ${String(rem).padStart(2, "0")}s`;
-}
-
-/** Safe inline Markdown formatter (bold, inline code, links) without innerHTML. */
-function renderInline(text: string): ReactNode[] {
-  const parts: ReactNode[] = [];
-  const tokenRegex = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = tokenRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    const token = match[0];
-    if (token.startsWith("**") && token.endsWith("**")) {
-      parts.push(
-        <strong key={match.index} style={{ color: "var(--ink-primary)" }}>
-          {token.slice(2, -2)}
-        </strong>,
-      );
-    } else if (token.startsWith("`") && token.endsWith("`")) {
-      parts.push(<code key={match.index}>{token.slice(1, -1)}</code>);
-    } else if (token.startsWith("[")) {
-      const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-      if (linkMatch) {
-        parts.push(
-          <a key={match.index} href={linkMatch[2]} target="_blank" rel="noreferrer">
-            {linkMatch[1]}
-          </a>,
-        );
-      }
-    }
-    lastIndex = tokenRegex.lastIndex;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-  return parts;
-}
-
-function MarkdownPreview({ markdown }: { markdown: string }) {
-  const lines = markdown.split("\n");
-  return (
-    <div className="markdown-doc">
-      {lines.map((line, idx) => {
-        const trimmed = line.trim();
-        if (!trimmed) return <Fragment key={idx} />;
-        if (trimmed.startsWith("# ")) {
-          return <h1 key={idx}>{renderInline(trimmed.slice(2))}</h1>;
-        }
-        if (trimmed.startsWith("## ")) {
-          return <h2 key={idx}>{renderInline(trimmed.slice(3))}</h2>;
-        }
-        if (trimmed.startsWith("- ") || /^\d+\.\s/.test(trimmed)) {
-          const text = trimmed.replace(/^(?:- |\d+\.\s)/, "");
-          return (
-            <div key={idx} style={{ display: "flex", gap: 8, paddingLeft: 6 }}>
-              <span style={{ color: "var(--accent)" }}>•</span>
-              <p>{renderInline(text)}</p>
-            </div>
-          );
-        }
-        return <p key={idx}>{renderInline(trimmed)}</p>;
-      })}
-    </div>
-  );
-}
-
 export function PostmortemDrawer({
   open,
   postmortems,
   selectedIncidentId,
   onClose,
 }: PostmortemDrawerProps) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const headingId = useId();
-  const [activeId, setActiveId] = useState<string>("");
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [activeId, setActiveId] = useState<string>(postmortems[0]?.id ?? "");
   const [copied, setCopied] = useState(false);
 
-  const selected =
-    postmortems.find((p) => p.id === activeId) ??
-    (selectedIncidentId ? postmortems.find((p) => p.incidentId === selectedIncidentId) : undefined) ??
-    postmortems[0];
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open) {
+      if (!dialog.open) dialog.showModal();
+    } else if (dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (selectedIncidentId) {
       const match = postmortems.find((p) => p.incidentId === selectedIncidentId);
       if (match) setActiveId(match.id);
+    } else if (!postmortems.some((p) => p.id === activeId) && postmortems[0]) {
+      setActiveId(postmortems[0].id);
     }
-  }, [selectedIncidentId, postmortems]);
+  }, [selectedIncidentId, postmortems, activeId]);
 
-  // Synchronize React `open` state with native modal <dialog>.showModal() / .close()
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
+  const active = postmortems.find((p) => p.id === activeId) ?? postmortems[0];
 
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  // Native close listener + light-dismiss fallback when `closedby="any"` is unsupported (Safari)
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleClose = () => {
-      dialog.returnValue = "";
-      onClose();
-    };
-    dialog.addEventListener("close", handleClose);
-
-    if (!("closedBy" in HTMLDialogElement.prototype)) {
-      const isOutside = (e: PointerEvent) => {
-        const rect = dialog.getBoundingClientRect();
-        return (
-          e.clientX < rect.left ||
-          e.clientX > rect.right ||
-          e.clientY < rect.top ||
-          e.clientY > rect.bottom
-        );
-      };
-      let pressedOutside = false;
-      const onDown = (e: PointerEvent) => {
-        pressedOutside = isOutside(e);
-      };
-      const onUp = (e: PointerEvent) => {
-        if (pressedOutside && isOutside(e)) dialog.close();
-      };
-      dialog.addEventListener("pointerdown", onDown);
-      dialog.addEventListener("pointerup", onUp);
-      return () => {
-        dialog.removeEventListener("close", handleClose);
-        dialog.removeEventListener("pointerdown", onDown);
-        dialog.removeEventListener("pointerup", onUp);
-      };
-    }
-
-    return () => {
-      dialog.removeEventListener("close", handleClose);
-    };
-  }, [onClose]);
-
-  async function handleCopy() {
-    if (!selected) return;
-    try {
-      await navigator.clipboard.writeText(selected.markdown);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // Clipboard unavailable
-    }
+  function handleCopy() {
+    if (!active) return;
+    navigator.clipboard?.writeText(active.markdown).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
   }
 
   function handleDownload() {
-    if (!selected) return;
-    const blob = new Blob([selected.markdown], { type: "text/markdown;charset=utf-8" });
+    if (!active) return;
+    const blob = new Blob([active.markdown], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${selected.id.toLowerCase()}-${selected.incidentId.toLowerCase()}.md`;
+    a.download = `postmortem-${active.incidentId}.md`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -201,120 +65,106 @@ export function PostmortemDrawer({
   return (
     <dialog
       ref={dialogRef}
-      className="postmortem-drawer"
-      aria-labelledby={headingId}
-      {...({ closedby: "any" } as Record<string, string>)}
+      aria-labelledby={titleId}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === dialogRef.current) onClose();
+      }}
+      className="m-0 ml-auto h-dvh max-h-dvh w-[min(640px,100dvw)] border-l border-[#EAE2D9] bg-white p-0 text-[#181614] shadow-2xl open:flex open:flex-col"
     >
-      <div className="drawer-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <FileText size={18} color="var(--accent)" />
-          <div>
-            <h2 id={headingId} style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
-              Auto-Generated Postmortems
-            </h2>
-            <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-              Generated automatically on RESOLVED transition with 3-timestamp TTD proof
-            </div>
-          </div>
+      <div className="flex items-center justify-between gap-3 border-b border-[#EFE8E0] px-5 py-4">
+        <div className="flex items-center gap-2">
+          <FileText size={16} className="text-[#FF5500]" />
+          <h2 id={titleId} className="text-[15px] font-semibold text-[#181614]">
+            Incident Postmortem Reports
+          </h2>
         </div>
-
         <button
           type="button"
-          className="btn"
-          aria-label="Close postmortems drawer"
-          autoFocus
-          onClick={() => dialogRef.current?.close()}
+          onClick={onClose}
+          aria-label="Close postmortem drawer"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#78716C] hover:bg-[#F4EFE9] cursor-pointer"
         >
-          <X size={15} />
-          <span>Close</span>
+          <X size={16} />
         </button>
       </div>
 
-      <div className="drawer-body">
-        {/* Postmortem Selector Strip */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {postmortems.map((pm) => (
-            <button
-              key={pm.id}
-              type="button"
-              className={`btn ${selected?.id === pm.id ? "btn-primary" : ""}`}
-              style={{ padding: "6px 10px", fontSize: 12 }}
-              onClick={() => setActiveId(pm.id)}
-            >
-              <span className="mono">{pm.incidentId}</span>
-              <span>{pm.service}</span>
-            </button>
-          ))}
-        </div>
-
-        {selected ? (
+      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+        {postmortems.length === 0 ? (
+          <div className="py-12 text-center text-[13px] text-[#78716C]">
+            No postmortems generated yet.
+          </div>
+        ) : (
           <>
-            {/* 3-Timestamp TTD Breakdown */}
-            <div className="panel" style={{ background: "var(--bg-canvas)" }}>
-              <div className="panel-header" style={{ padding: "10px 14px" }}>
-                <span className="panel-title" style={{ fontSize: 13 }}>
-                  <Clock size={14} color="var(--accent)" />
-                  <span>3-Timestamp TTD Breakdown (vs. {formatMs(selected.manualBaselineMs)} Manual)</span>
-                </span>
-                <span className="speedup-tag mono">
-                  {Math.max(1, Math.round(selected.manualBaselineMs / Math.max(1, selected.diagnosisDurationMs)))}x
-                  faster
-                </span>
+            {postmortems.length > 1 && (
+              <div className="flex flex-wrap gap-1.5">
+                {postmortems.map((pm) => (
+                  <button
+                    key={pm.id}
+                    type="button"
+                    onClick={() => setActiveId(pm.id)}
+                    className={cn(
+                      "rounded-md border px-2.5 py-1 font-mono text-[11.5px] cursor-pointer",
+                      pm.id === active?.id
+                        ? "border-[#FBD3B7] bg-[#FFF5EE] font-semibold text-[#B83B00]"
+                        : "border-[#EAE2D9] bg-[#FAF8F5] text-[#5C5650]",
+                    )}
+                  >
+                    {pm.incidentId}
+                  </button>
+                ))}
               </div>
-              <div className="panel-body" style={{ padding: "12px 14px" }}>
-                <div className="ttd-strip">
-                  <div className="kv-item">
-                    <div className="kv-key mono">1. faultStartAt</div>
-                    <div className="kv-val mono">{formatIsoShort(selected.faultStartAt)}</div>
-                    <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Fault injected</div>
-                  </div>
-                  <div className="kv-item">
-                    <div className="kv-key mono">2. alarmRaisedAt</div>
-                    <div className="kv-val mono" style={{ color: "var(--warn)" }}>
-                      {formatIsoShort(selected.alarmRaisedAt)}
-                    </div>
-                    <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-                      +{formatMs(selected.detectionLagMs)} Watcher lag
+            )}
+
+            {active && (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#EAE2D9] bg-[#FAF8F5] p-3.5 text-[12.5px]">
+                  <div>
+                    <div className="font-semibold text-[#181614]">{active.title}</div>
+                    <div className="mt-0.5 font-mono text-[11.5px] text-[#78716C]">
+                      {active.service} · TTD {(active.totalTtdMs / 1000).toFixed(1)}s
                     </div>
                   </div>
-                  <div className="kv-item">
-                    <div className="kv-key mono">3. causeNamedAt</div>
-                    <div className="kv-val mono" style={{ color: "var(--accent)" }}>
-                      {formatIsoShort(selected.causeNamedAt)}
-                    </div>
-                    <div style={{ fontSize: 12, color: "var(--safe)" }}>
-                      +{formatMs(selected.diagnosisDurationMs)} Brain TTD
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    {active.fixPrUrl && (
+                      <a
+                        href={active.fixPrUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-7 items-center gap-1 rounded-md border border-[#E5DCD2] bg-white px-2.5 text-[12px] font-medium text-[#181614] hover:bg-[#F4EFE9]"
+                      >
+                        <ExternalLink size={11} />
+                        <span>PR</span>
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="inline-flex h-7 items-center gap-1 rounded-md border border-[#E5DCD2] bg-white px-2.5 text-[12px] font-medium text-[#181614] hover:bg-[#F4EFE9] cursor-pointer"
+                    >
+                      {copied ? <Check size={11} /> : <Copy size={11} />}
+                      <span>{copied ? "Copied" : "Copy"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownload}
+                      className="inline-flex h-7 items-center gap-1 rounded-md bg-[#FF5500] px-2.5 text-[12px] font-medium text-white hover:bg-[#E04B00] cursor-pointer"
+                    >
+                      <Download size={11} />
+                      <span>.md</span>
+                    </button>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* 1-Click Export Controls */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button type="button" className="btn btn-primary" onClick={handleDownload}>
-                  <Download size={14} />
-                  <span>Export .md</span>
-                </button>
-                <button type="button" className="btn" onClick={handleCopy}>
-                  {copied ? <Check size={14} color="var(--safe)" /> : <Copy size={14} />}
-                  <span>{copied ? "Copied Markdown" : "Copy Markdown"}</span>
-                </button>
-              </div>
-              {selected.fixPrUrl && (
-                <a href={selected.fixPrUrl} target="_blank" rel="noreferrer" className="btn">
-                  <ExternalLink size={14} />
-                  <span>Open Fix PR</span>
-                </a>
-              )}
-            </div>
-
-            {/* Formatted Postmortem Document */}
-            <MarkdownPreview markdown={selected.markdown} />
+                <pre className="whitespace-pre-wrap rounded-xl border border-[#EAE2D9] bg-[#FAF8F5] p-4 font-mono text-[12px] leading-relaxed text-[#181614]">
+                  {active.markdown}
+                </pre>
+              </>
+            )}
           </>
-        ) : (
-          <div style={{ color: "var(--ink-muted)" }}>No postmortems have been generated yet.</div>
         )}
       </div>
     </dialog>
