@@ -168,7 +168,7 @@ export function startServer() {
   }
 
   void githubAppAuth.syncInstallationsFromGitHub();
-  void bootstrapSietchScans();
+  // Zero seeded/fake security scans: all scans come strictly from live GitHub webhooks or explicit scan triggers.
 
   server.listen(CONFIG.PORT, '0.0.0.0', () => {
     console.log(`

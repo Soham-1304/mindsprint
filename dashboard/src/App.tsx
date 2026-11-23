@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { PostmortemDrawer } from "@/components/PostmortemDrawer";
 import { ImportProjectDialog } from "@/components/ProjectsPanel";
-import { FALLBACK_OVERVIEW } from "@/data/fallbackData";
+import { EMPTY_OVERVIEW } from "@/data/fallbackData";
 import LandingPage from "@/landing/LandingPage";
 import { type AppRoute, buildPath, parseRoute } from "@/lib/router";
 import { ArchitecturePage } from "@/pages/ArchitecturePage";
@@ -26,7 +26,8 @@ function resolveWsUrl(): string {
 }
 
 export function App() {
-  const [data, setData] = useState<DashboardOverview>(FALLBACK_OVERVIEW);
+  const [data, setData] = useState<DashboardOverview>(EMPTY_OVERVIEW);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [route, setRoute] = useState<AppRoute>(() => parseRoute(window.location.pathname));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerIncidentId, setDrawerIncidentId] = useState<string | null>(null);
@@ -68,7 +69,9 @@ export function App() {
       const json = (await resp.json()) as DashboardOverview;
       setData(json);
     } catch {
-      // Offline — preserve last snapshot
+      // Backend temporarily unreachable — keep current live state (no fake fallback)
+    } finally {
+      setInitialLoaded(true);
     }
   }, []);
 
@@ -112,7 +115,7 @@ export function App() {
     };
   }, [fetchOverview, route.kind]);
 
-  const projects = data.projects ?? FALLBACK_OVERVIEW.projects ?? [];
+  const projects = data.projects ?? [];
   const activeProject =
     route.kind === "project"
       ? projects.find((p) => p.id === route.projectId) ?? projects[0]
@@ -262,6 +265,21 @@ export function App() {
           }
           onOpenImportDialog={() => setImportOpen(true)}
         />
+      )}
+
+      {route.kind === "project" && !activeProject && (
+        <div className="rounded-2xl border border-[#EAE2D9] bg-white px-6 py-16 text-center shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
+          <div className="font-mono text-[13px] font-semibold text-[#181614]">
+            {initialLoaded
+              ? "No linked project found on control plane"
+              : "Connecting to PatchUP control plane..."}
+          </div>
+          <p className="mt-1.5 text-[12.5px] text-[#665E56]">
+            {initialLoaded
+              ? "Import a GitHub repository from Projects to begin live monitoring."
+              : "Fetching real-time projects, probes, incidents, and security scans."}
+          </p>
+        </div>
       )}
 
       {route.kind === "project" && activeProject && route.tab === "overview" && (

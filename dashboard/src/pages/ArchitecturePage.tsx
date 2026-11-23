@@ -126,13 +126,13 @@ export function ArchitecturePage({
         slotId: "backend-service",
         serviceKey: "orders",
         label: orders ? `${orders.name}-service` : "orders-service",
-        role: orders?.url || "https://pulseshop-orders.vercel.app",
-        url: orders?.url || "https://pulseshop-orders.vercel.app",
+        role: orders?.url || "Orders microservice",
+        url: orders?.url,
         health: openInc.some((i) => i.service === "orders")
           ? "CRITICAL"
           : mapServiceHealth(orders?.status),
-        errorRate5xx: orders?.errorRate5xx ?? 0,
-        p95LatencyMs: orders?.p95LatencyMs ?? 128,
+        errorRate5xx: orders?.errorRate5xx,
+        p95LatencyMs: orders?.p95LatencyMs,
         version: orders?.version || project.defaultBranch,
         lastCheckedAt: orders?.lastCheckedAt || project.capabilities.checkedAt,
       },
@@ -140,15 +140,15 @@ export function ArchitecturePage({
         slotId: "gateway-service",
         serviceKey: "gateway",
         label: gateway ? `${gateway.name}-service` : "gateway-service",
-        role: gateway?.url || project.deployedUrl || "https://pulseshop-gateway.vercel.app",
-        url: gateway?.url || project.deployedUrl || "https://pulseshop-gateway.vercel.app",
+        role: gateway?.url || project.deployedUrl || "API Gateway",
+        url: gateway?.url || project.deployedUrl,
         health: openInc.some((i) => i.service === "gateway")
           ? "CRITICAL"
           : !project.capabilities.healthEndpoint
             ? "DEGRADED"
             : mapServiceHealth(gateway?.status),
-        errorRate5xx: gateway?.errorRate5xx ?? 0,
-        p95LatencyMs: gateway?.p95LatencyMs ?? 164,
+        errorRate5xx: gateway?.errorRate5xx,
+        p95LatencyMs: gateway?.p95LatencyMs,
         version: gateway?.version || project.defaultBranch,
         lastCheckedAt: gateway?.lastCheckedAt || project.capabilities.checkedAt,
       },
@@ -156,13 +156,13 @@ export function ArchitecturePage({
         slotId: "frontend-service",
         serviceKey: "payments",
         label: payments ? `${payments.name}-service` : "payments-service",
-        role: payments?.url || "https://pulseshop-payments.vercel.app",
-        url: payments?.url || "https://pulseshop-payments.vercel.app",
+        role: payments?.url || "Payments microservice",
+        url: payments?.url,
         health: openInc.some((i) => i.service === "payments")
           ? "CRITICAL"
           : mapServiceHealth(payments?.status),
-        errorRate5xx: payments?.errorRate5xx ?? 0,
-        p95LatencyMs: payments?.p95LatencyMs ?? 112,
+        errorRate5xx: payments?.errorRate5xx,
+        p95LatencyMs: payments?.p95LatencyMs,
         version: payments?.version || project.defaultBranch,
         lastCheckedAt: payments?.lastCheckedAt || project.capabilities.checkedAt,
       },
@@ -607,7 +607,9 @@ export function ArchitecturePage({
                                   GET /api/health → 200 OK
                                 </span>
                                 <span className="text-[#78716C] tabular-nums">
-                                  {selected.p95LatencyMs ?? 120}ms
+                                  {typeof selected.p95LatencyMs === "number"
+                                    ? `${selected.p95LatencyMs}ms`
+                                    : "live"}
                                 </span>
                               </div>
                               <div className="mt-0.5 truncate font-mono text-[11px] text-[#665E56]">

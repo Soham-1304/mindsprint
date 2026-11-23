@@ -29,10 +29,8 @@ export class IncidentManager {
         this.incidents.set(inc.id, inc);
       }
       this.auditLog = sqliteStore.getAuditEntries(200);
-      return;
     }
-
-    this.seedHistoricalData();
+    // Zero seeded/fake incidents: all incidents come strictly from live webhooks, probes, or real fault triggers.
   }
 
   private seedHistoricalData(): void {
