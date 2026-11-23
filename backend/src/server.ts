@@ -53,9 +53,8 @@ export function createApp(): Express {
 
 async function bootstrapSietchScans(): Promise<void> {
   const repoDir = CONFIG.PULSESHOP_REPO_DIR;
-  const fallbackDiffs: Record<string, { prNumber: number; commitSha: string; diffText: string }> = {
+  const fallbackDiffs: Record<string, { prNumber?: number; commitSha: string; diffText: string }> = {
     'low-memory': {
-      prNumber: 43,
       commitSha: '6e71525',
       diffText: [
         'diff --git a/docker-compose.yml b/docker-compose.yml',
@@ -68,8 +67,8 @@ async function bootstrapSietchScans(): Promise<void> {
       ].join('\n'),
     },
     'bad-package': {
-      prNumber: 42,
-      commitSha: '3450f2f',
+      prNumber: 1,
+      commitSha: '0d007c7',
       diffText: [
         'diff --git a/services/orders/package.json b/services/orders/package.json',
         '--- a/services/orders/package.json',

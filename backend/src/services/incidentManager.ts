@@ -65,8 +65,8 @@ export class IncidentManager {
       category: 'CODE_BUG',
       status: 'RESOLVED',
       severity: 'CRITICAL',
-      fixPrUrl: 'https://github.com/Soham-1304/pulseshop/pull/45',
-      fixPrNumber: 45,
+      fixPrUrl: 'https://github.com/Soham-1304/pulseshop/pull/7',
+      fixPrNumber: 7,
       timestamps: {
         faultStartedAt: t0,
         alarmRaisedAt: t1,
@@ -96,12 +96,21 @@ export class IncidentManager {
           error: "Cannot read properties of undefined (reading 'percentage')",
         },
         suspectCommit: {
-          sha: 'b5de597',
+          sha: 'ad314b7',
           message: 'feat(orders): add promo code discount calculation to checkout',
-          author: 'soham-1304@pulseshop.io',
+          author: 'Soham-1304',
           file: 'services/orders/src/routes/orders.js',
           line: 51,
-          diff: '+ const pct = discountMeta.percentage;',
+          diff: [
+            '@@ -48,7 +48,9 @@ function calculatePromoDiscount(promoCode, subtotal) {',
+            '   const discountMeta = PROMO_CODES[promoCode];',
+            '-  const pct = discountMeta.percentage;',
+            '+  if (!discountMeta || typeof discountMeta.percentage !== "number") {',
+            '+    return 0;',
+            '+  }',
+            '+  const pct = discountMeta.percentage;',
+            '   return Math.round(subtotal * (pct / 100) * 100) / 100;',
+          ].join('\n'),
         },
       },
       diagnosis: {
@@ -120,48 +129,56 @@ export class IncidentManager {
         recoveryStrategies: [
           {
             name: 'Null-safe Promo Discount Fix PR',
-            description: 'Guard discountMeta?.percentage ?? 0 in calculatePromoDiscount()',
+            description: 'Guard discountMeta?.percentage ?? 0 in calculatePromoDiscount() and add unit test.',
             actionType: 'FIX_PR',
             tier: 'AUTO_FIX',
             risks: 'Low risk, backward-compatible with all checkout payloads.',
             targetFile: 'services/orders/src/routes/orders.js',
           },
+          {
+            name: 'Revert Commit ad314b7 via PR',
+            description: 'Open a clean git revert PR for commit ad314b7 to restore previous promo logic.',
+            actionType: 'REVERT_PR',
+            tier: 'AUTO_FIX',
+            risks: 'Temporarily disables new promo discount codes until re-introduced safely.',
+            targetFile: 'services/orders/src/routes/orders.js',
+          },
         ],
         explanation:
-          'Commit b5de597 introduced direct access to discountMeta.percentage without optional chaining when promoCode is null.',
+          'Commit ad314b7 introduced direct access to discountMeta.percentage without optional chaining when promoCode is null.',
         safetyTier: 'AUTO_FIX',
         suggestedFix: {
           actionType: 'FIX_PR',
-          description: 'Apply optional chaining: const pct = discountMeta?.percentage ?? 0;',
+          description: 'Apply null guard: if (!discountMeta || typeof discountMeta.percentage !== "number") return 0;',
           targetFile: 'services/orders/src/routes/orders.js',
-          codePatch: '- const pct = discountMeta.percentage;\n+ const pct = discountMeta?.percentage ?? 0;',
+          codePatch: '-  const pct = discountMeta.percentage;\n+  if (!discountMeta || typeof discountMeta.percentage !== "number") return 0;\n+  const pct = discountMeta.percentage;',
         },
         regressionTestSnippet: 'it("handles checkout without promoCode safely", async () => { ... })',
       },
       actionsTaken: [
         {
           id: 'act-001',
-          action: 'Created branch agent/fix-inc-001 and opened PR #45 with regression test',
+          action: 'Created branch fix/inc-20261121-002-506g and opened PR #7 with regression test',
           tier: 'AUTO_FIX',
           executedBy: 'AI_AGENT',
           timestamp: t3,
-          result: 'PR #45 merged & verified',
+          result: 'PR #7 opened on Soham-1304/pulseshop',
         },
         {
           id: 'act-002',
-          action: 'Post-fix verification: monitored error rate for 30s (recovered to 0.2%)',
+          action: 'Post-fix verification: syntax check & pre-merge security self-gate passed',
           tier: 'AUTO_FIX',
           executedBy: 'AI_AGENT',
           timestamp: t4,
-          result: 'Incident resolved successfully',
+          result: 'RAM purged (0 B retained)',
         },
       ],
       postmortem: `# Postmortem: INC-20261121-001
 **Service**: PulseShop Orders Service
 **Impact**: Checkout 5xx error rate spiked to 14.2% for ~100 seconds.
 **Time to Diagnose**: 16 seconds (vs 18m manual baseline — 98.5% faster).
-**Root Cause**: Unchecked \`discountMeta.percentage\` access in \`services/orders/src/routes/orders.js:51\` (commit \`b5de597\`).
-**Fix**: PR #45 added null-safe optional chaining and regression test.`,
+**Root Cause**: Unchecked \`discountMeta.percentage\` access in \`services/orders/src/routes/orders.js:51\` (commit \`ad314b7\`).
+**Fix**: PR #7 added null-safe guard and regression test.`,
     };
 
     this.incidents.set(pastIncidentId, historicalIncident);
@@ -172,7 +189,7 @@ export class IncidentManager {
       timestamp: t3,
       actor: 'AI_AGENT',
       tier: 'AUTO',
-      action: 'FIX_PR_OPENED (#45)',
+      action: 'FIX_PR_OPENED (#7)',
       target: 'orders-service (services/orders/src/routes/orders.js:51)',
       outcome: 'EXECUTED',
       incidentId: pastIncidentId,

@@ -69,9 +69,9 @@
   --chart-crosshair: #d4c8bc;
   --chart-grid: #f0e9e1;
   --chart-brush-border: #eae2d9;
-  --chart-tooltip-background: #181614;
-  --chart-tooltip-foreground: #faf8f5;
-  --chart-tooltip-muted: #a8a29e;
+  --chart-tooltip-background: #ffffff;
+  --chart-tooltip-foreground: #181614;
+  --chart-tooltip-muted: #665e56;
   --chart-marker-background: #fff3eb;
   --chart-marker-border: #fbd3b7;
   --chart-marker-foreground: #b83b00;

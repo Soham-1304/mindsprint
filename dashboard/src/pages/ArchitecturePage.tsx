@@ -421,39 +421,43 @@ export function ArchitecturePage({
 
             {inspectorTab === "incidents" && (
               <div className="space-y-2.5">
-                {selected.serviceKey === "repo" ? (
-                  <button
-                    type="button"
-                    onClick={onOpenSecurity}
-                    className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#B83B00] hover:underline cursor-pointer"
-                  >
-                    <span>Open full Security gate table</span>
-                    <ArrowRight size={13} />
-                  </button>
-                ) : selectedIncidents.length > 0 ? (
-                  selectedIncidents.map((inc) => (
-                    <button
-                      key={inc.id}
-                      type="button"
-                      onClick={() => onOpenIncident(inc.id)}
-                      className="w-full rounded-xl border border-[#EAE2D9] bg-[#FAF8F5] p-3.5 text-left transition-colors hover:border-[#FF5500]/50 cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between font-mono text-[11px] text-[#78716C]">
-                        <span>
-                          {inc.id} · {inc.ruleId}
-                        </span>
-                        <span className="font-semibold text-[#181614]">{inc.status}</span>
-                      </div>
-                      <div className="mt-1 font-semibold text-[#181614]">{inc.title}</div>
-                      <p className="mt-1 line-clamp-2 text-[12px] text-[#5C5650]">
-                        {inc.diagnosisSummary}
-                      </p>
-                    </button>
-                  ))
+                {(selected.serviceKey === "repo" ? incidents : selectedIncidents).length > 0 ? (
+                  (selected.serviceKey === "repo" ? incidents : selectedIncidents)
+                    .slice(0, 4)
+                    .map((inc) => (
+                      <button
+                        key={inc.id}
+                        type="button"
+                        onClick={() => onOpenIncident(inc.id)}
+                        className="w-full rounded-xl border border-[#EAE2D9] bg-[#FAF8F5] p-3 text-left transition-colors hover:border-[#FF5500]/50 cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between font-mono text-[11px] text-[#78716C]">
+                          <span>
+                            {inc.id} · {inc.service}
+                          </span>
+                          <span className="font-semibold text-[#181614]">{inc.status}</span>
+                        </div>
+                        <div className="mt-1 font-semibold text-[#181614]">{inc.title}</div>
+                        <p className="mt-1 line-clamp-2 text-[12px] text-[#5C5650]">
+                          {inc.diagnosisSummary}
+                        </p>
+                      </button>
+                    ))
                 ) : (
                   <div className="rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] p-4 text-[#665E56]">
                     No incidents recorded on {selected.label}.
                   </div>
+                )}
+
+                {selected.serviceKey === "repo" && (
+                  <button
+                    type="button"
+                    onClick={onOpenSecurity}
+                    className="inline-flex items-center gap-1.5 pt-1 text-[12px] font-medium text-[#B83B00] hover:underline cursor-pointer"
+                  >
+                    <span>Open full Security gate scans</span>
+                    <ArrowRight size={13} />
+                  </button>
                 )}
               </div>
             )}

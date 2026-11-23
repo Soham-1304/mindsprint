@@ -7,7 +7,6 @@ import { FALLBACK_OVERVIEW } from "@/data/fallbackData";
 import LandingPage from "@/landing/LandingPage";
 import { type AppRoute, buildPath, parseRoute } from "@/lib/router";
 import { ArchitecturePage } from "@/pages/ArchitecturePage";
-import { IncidentDetailPage } from "@/pages/IncidentDetailPage";
 import { IncidentsPage } from "@/pages/IncidentsPage";
 import { ProjectOverviewPage } from "@/pages/ProjectOverviewPage";
 import { ProjectSettingsPage } from "@/pages/ProjectSettingsPage";
@@ -319,60 +318,26 @@ export function App() {
 
       {route.kind === "project" &&
         activeProject &&
-        route.tab === "incidents" &&
-        !route.incidentId && (
+        route.tab === "incidents" && (
           <IncidentsPage
             incidents={projectIncidents}
             approvals={data.approvals}
-            onOpenIncident={(incidentId) =>
-              navigate({
-                kind: "project",
-                projectId: activeProject.id,
-                tab: "incidents",
-                incidentId,
-              })
-            }
+            repoFullName={activeProject.fullName}
+            apiBase={API_BASE}
+            operatorToken={operatorToken}
+            approvalError={approvalError}
+            onChangeOperatorToken={setOperatorToken}
+            onDecideApproval={handleDecideApproval}
+            onOpenPostmortem={(incId) => {
+              setDrawerIncidentId(incId);
+              setDrawerOpen(true);
+            }}
           />
         )}
 
-      {route.kind === "project" &&
-        activeProject &&
-        route.tab === "incidents" &&
-        route.incidentId &&
-        (() => {
-          const inc =
-            projectIncidents.find((i) => i.id === route.incidentId) ?? projectIncidents[0];
-          if (!inc) {
-            return (
-              <div className="rounded-xl border border-[#EAE2D9] bg-white p-8 text-center text-[13px] text-[#665E56]">
-                Incident not found.
-              </div>
-            );
-          }
-          const appr = data.approvals.find((a) => a.incidentId === inc.id);
-          return (
-            <IncidentDetailPage
-              incident={inc}
-              approval={appr}
-              repoFullName={activeProject.fullName}
-              apiBase={API_BASE}
-              operatorToken={operatorToken}
-              approvalError={approvalError}
-              onChangeOperatorToken={setOperatorToken}
-              onDecideApproval={handleDecideApproval}
-              onOpenPostmortem={(incId) => {
-                setDrawerIncidentId(incId);
-                setDrawerOpen(true);
-              }}
-              onBack={() =>
-                navigate({ kind: "project", projectId: activeProject.id, tab: "incidents" })
-              }
-            />
-          );
-        })()}
-
       {route.kind === "project" && activeProject && route.tab === "security" && (
         <SecurityGatePage
+          repoFullName={activeProject.fullName}
           scans={data.sietchScans}
           onTriggerBranchScan={handleTriggerBranchScan}
         />
