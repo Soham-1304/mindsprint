@@ -201,7 +201,7 @@ export function SecurityGatePage({
 
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     {/* Layer 1 Card */}
-                    <div className="rounded-xl border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
+                    <div className="min-w-0 rounded-xl border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
                       <div className="text-[11.5px] font-semibold text-[#5C5650]">
                         Layer 1 · Sandbox
                       </div>
@@ -235,7 +235,7 @@ export function SecurityGatePage({
                     </div>
 
                     {/* Layer 2 Card */}
-                    <div className="rounded-xl border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
+                    <div className="min-w-0 rounded-xl border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
                       <div className="text-[11.5px] font-semibold text-[#5C5650]">
                         Layer 2 · Typosquat
                       </div>
@@ -247,7 +247,7 @@ export function SecurityGatePage({
                     </div>
 
                     {/* Layer 3 Card */}
-                    <div className="rounded-xl border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
+                    <div className="min-w-0 rounded-xl border border-[#EFE8E0] bg-[#FAF8F5] p-3.5">
                       <div className="text-[11.5px] font-semibold text-[#5C5650]">
                         Layer 3 · Diff guard
                       </div>

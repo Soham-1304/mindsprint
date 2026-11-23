@@ -135,8 +135,78 @@ export function ProjectOverviewPage({
       .slice(0, 6);
   }, [incidents, scans, onOpenIncident, onOpenSecurity]);
 
+  const latestTtdSec = latestIncident
+    ? Number((latestIncident.timeToDiagnosisMs / 1000).toFixed(1))
+    : 0;
+  const blockedScansCount = scans.filter((s) => s.blocked).length;
+
   return (
     <div className="space-y-6">
+      {/* EXECUTIVE KPI STRIP */}
+      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+        <div className="rounded-xl border border-[#EAE2D9] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
+          <div className="text-[11.5px] font-medium text-[#78716C]">System health</div>
+          <div className="mt-1 flex items-center gap-2">
+            <span
+              className={cn(
+                "h-2 w-2 rounded-full",
+                openIncident ? "bg-[#FF5500]" : "bg-[#15803D]",
+              )}
+            />
+            <span className="font-mono text-[16px] font-semibold text-[#181614]">
+              {openIncident ? "1 Open Alert" : "All Healthy"}
+            </span>
+          </div>
+          <div className="mt-1 font-mono text-[11px] text-[#78716C]">
+            {services.length || 3} live microservices
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onOpenSignals}
+          className="rounded-xl border border-[#EAE2D9] bg-white px-4 py-3.5 text-left shadow-[0_1px_2px_rgba(24,22,20,0.04)] transition-colors hover:border-[#FBD3B7] cursor-pointer"
+        >
+          <div className="text-[11.5px] font-medium text-[#78716C]">Live signals</div>
+          <div className="mt-1 font-mono text-[16px] font-semibold text-[#181614] tabular-nums">
+            {project.capabilities.activeSignalsCount} / {project.capabilities.totalSignalsCount}
+          </div>
+          <div className="mt-1 font-mono text-[11px] text-[#15803D]">
+            {project.capabilities.accuracyLevel} coverage →
+          </div>
+        </button>
+
+        <div className="rounded-xl border border-[#EAE2D9] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(24,22,20,0.04)]">
+          <div className="text-[11.5px] font-medium text-[#78716C]">RAM retained</div>
+          <div className="mt-1 font-mono text-[16px] font-semibold text-[#15803D] tabular-nums">
+            0 B
+          </div>
+          <div className="mt-1 font-mono text-[11px] text-[#78716C] tabular-nums">
+            {ephemeralTotalPurged} buffers cryptographically purged
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={latestIncident ? () => onOpenIncident(latestIncident.id) : onOpenSecurity}
+          className="rounded-xl border border-[#EAE2D9] bg-white px-4 py-3.5 text-left shadow-[0_1px_2px_rgba(24,22,20,0.04)] transition-colors hover:border-[#FBD3B7] cursor-pointer"
+        >
+          <div className="text-[11.5px] font-medium text-[#78716C]">Latest diagnosis</div>
+          <div className="mt-1 font-mono text-[16px] font-semibold text-[#181614] tabular-nums">
+            {latestIncident ? (
+              <>
+                <NumberTicker value={latestTtdSec} decimalPlaces={1} />s
+              </>
+            ) : (
+              "—"
+            )}
+          </div>
+          <div className="mt-1 font-mono text-[11px] text-[#B83B00]">
+            {blockedScansCount} PR threats blocked →
+          </div>
+        </button>
+      </div>
+
       {/* TOP ROW: Live Status / Active Incident + Monitored Services Summary */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.15fr_0.85fr]">
         {/* Active Incident / Health Card */}
@@ -412,18 +482,20 @@ export function ProjectOverviewPage({
             </span>
           </div>
           {diagnosisBarData.length > 0 ? (
-            <BarChart
-              data={diagnosisBarData}
-              xDataKey="name"
-              barWidth={36}
-              aspectRatio="16 / 9"
-              margin={{ top: 12, right: 12, bottom: 26, left: 24 }}
-            >
-              <Grid horizontal />
-              <Bar dataKey="ttdSec" fill="#FF5500" lineCap="round" />
-              <BarXAxis />
-              <ChartTooltip />
-            </BarChart>
+            <div className="mx-auto max-w-[260px]">
+              <BarChart
+                data={diagnosisBarData}
+                xDataKey="name"
+                barWidth={32}
+                aspectRatio="16 / 10"
+                margin={{ top: 14, right: 16, bottom: 26, left: 24 }}
+              >
+                <Grid horizontal />
+                <Bar dataKey="ttdSec" fill="#FF5500" lineCap="round" />
+                <BarXAxis />
+                <ChartTooltip />
+              </BarChart>
+            </div>
           ) : (
             <div className="flex h-[175px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E5DCD2] bg-[#FAF8F5] px-4 text-center">
               <span className="font-mono text-[12px] font-medium text-[#5C5650]">
