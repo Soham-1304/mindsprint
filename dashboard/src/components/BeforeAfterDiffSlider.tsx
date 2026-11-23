@@ -52,7 +52,9 @@ function parseUnifiedDiffToFiles(diff: string, fallbackFile: string): ParsedFile
       line.startsWith("new file mode") ||
       line.startsWith("--- ") ||
       line.startsWith("\\ No newline") ||
-      line.startsWith("# ")
+      line.startsWith("# ") ||
+      line.startsWith("commit ") ||
+      line.startsWith("Author: ")
     ) {
       continue;
     }

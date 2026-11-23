@@ -18,7 +18,7 @@ export const FALLBACK_OVERVIEW: DashboardOverview = {
       repoName: "pulseshop",
       fullName: "Soham-1304/pulseshop",
       defaultBranch: "main",
-      deployedUrl: "https://pulseshop-gateway-41zp9bnd4-2024sohamk-isuacins-projects.vercel.app",
+      deployedUrl: "https://pulseshop-gateway.vercel.app",
       healthEndpoint: "/api/health",
       metricsEndpoint: "/metrics",
       telemetryEndpoint: "/api/telemetry",
@@ -41,7 +41,7 @@ export const FALLBACK_OVERVIEW: DashboardOverview = {
   ],
   target: {
     name: "PulseShop",
-    activeRelease: "v2.14.3 (b5de597 -> PR #45)",
+    activeRelease: "main (ad314b7 -> PR #7)",
     canarySplit: {
       stable: 90,
       canary: 10,
@@ -88,13 +88,15 @@ export const FALLBACK_OVERVIEW: DashboardOverview = {
         error: "TypeError: Cannot read properties of undefined (reading 'percentage')",
       },
       gitBlameDiff: [
-        "commit b5de59717e958f9ea0d321c9671d108035b4fadb (bug-checkout)",
-        "Author: Soham Karandikar <soham@pulseshop.io>",
-        "@@ -48,7 +48,7 @@ function calculatePromoDiscount(subtotal, promoCode, discountMeta) {",
-        '   if (orderFaultState.mode === "bug-checkout") {',
-        "-    const rawRate = discountMeta.percentage / 100;",
-        "+    const rawRate = discountMeta.percentage / 100; // regression: missing null guard on discountMeta",
-        "     return Number((subtotal * rawRate).toFixed(2));",
+        "diff --git a/services/orders/src/routes/orders.js b/services/orders/src/routes/orders.js",
+        "@@ -49,5 +49,8 @@ function calculatePromoDiscount(subtotal, promoCode, discountMeta) {",
+        " function calculatePromoDiscount(subtotal, promoCode, discountMeta) {",
+        "-  const tieredRate = discountMeta.percentage / 100; // unguarded undefined access",
+        "+  if (discountMeta && typeof discountMeta.percentage === \"number\") {",
+        "+    return Number((subtotal * (discountMeta.percentage / 100)).toFixed(2));",
+        "+  }",
+        "+  return 0;",
+        " }",
       ].join("\n"),
       diagnosisSummary:
         "Commit b5de597 dereferences discountMeta.percentage without a null guard when checkout payloads omit promo metadata, driving 5xx rate to 41.2%.",
@@ -104,7 +106,7 @@ export const FALLBACK_OVERVIEW: DashboardOverview = {
       safetyTier: "AUTO",
       recommendedStrategyIndex: 0,
       selectedStrategyRationale:
-        "Null-safe Fix PR (#45) eliminates the deterministic TypeError across all pods with immediate reversibility, whereas blind container restart would leave the buggy code active and worsen checkout retries.",
+        "Null-safe Fix PR (#7) eliminates the deterministic TypeError across all pods with immediate reversibility, whereas blind container restart would leave the buggy code active and worsen checkout retries.",
       counterfactualEvaluations: [
         {
           strategyName: "Open Null-Guard Fix PR (agent/fix-INC-2026-041)",
@@ -153,8 +155,8 @@ export const FALLBACK_OVERVIEW: DashboardOverview = {
         afterStatus: "PASS",
         afterOutput: "PASS 14/14 tests green (orders.test.js + null-guard regression test)",
       },
-      fixPrUrl: "https://github.com/pulseshop/pulseshop/pull/45",
-      fixPrNumber: 45,
+      fixPrUrl: "https://github.com/Soham-1304/pulseshop/pull/7",
+      fixPrNumber: 7,
       sietchSelfGate: {
         verdictKind: "SAFE",
         blocked: false,
